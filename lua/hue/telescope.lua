@@ -66,7 +66,7 @@ function M.toggle_lights(opts)
                 actions.select_default:replace(function()
                     actions.close(prompt_bufnr)
                     local light = action_state.get_selected_entry().value
-                    local s = {on = not light.state.on}
+                    local s = {on = not light.data.state.on}
                     if s.on then s.bri, s.ct = 254, 153 end
                     light.state_async(s)(response_handler(light, s))
                 end)
@@ -118,7 +118,7 @@ function M.toggle_groups(opts)
                 actions.select_default:replace(function()
                     actions.close(prompt_bufnr)
                     local group = action_state.get_selected_entry().value
-                    local s = {on = not group.state.any_on}
+                    local s = {on = not group.data.state.any_on}
                     if s.on then s.bri, s.ct = 254, 153 end
                     group.action_async(s)(response_handler(group, s))
                 end)
