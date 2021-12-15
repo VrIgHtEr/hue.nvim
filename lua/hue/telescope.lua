@@ -7,7 +7,7 @@ local actions = require "telescope.actions"
 local action_state = require "telescope.actions.state"
 local hue = require 'hue'
 
-local function response_handler(name, powerstate)
+local function response_handler(o, s)
     return function(response, err)
         if not response then
             print(vim.inspect(err))
@@ -16,13 +16,13 @@ local function response_handler(name, powerstate)
             return
         end
         local state_string
-        if powerstate then
+        if s.on then
             state_string = "on"
         else
             state_string = "off"
         end
-        require 'notify'("Turned " .. state_string .. " " .. name, "info",
-                         {title = "Philips Hue"})
+        require 'notify'("Turned " .. state_string .. " " .. o.data.name,
+                         "info", {title = "Philips Hue"})
     end
 end
 
@@ -66,14 +66,9 @@ function M.toggle_lights(opts)
                 actions.select_default:replace(function()
                     actions.close(prompt_bufnr)
                     local light = action_state.get_selected_entry().value
-                    if light.data.state.on then
-                        light.state_async {on = false}(response_handler(
-                                                           light.data.name,
-                                                           false))
-                    else
-                        light.state_async {on = true, bri = 255, ct = 153}(
-                            response_handler(light.data.name, true))
-                    end
+                    local s = {on = not light.state.on}
+                    if s.on then s.bri, s.ct = 254, 153 end
+                    light.state_async(s)(response_handler(light, s))
                 end)
                 return true
             end
@@ -123,14 +118,9 @@ function M.toggle_groups(opts)
                 actions.select_default:replace(function()
                     actions.close(prompt_bufnr)
                     local group = action_state.get_selected_entry().value
-                    if group.data.state.any_on then
-                        group.action_async {on = false}(response_handler(
-                                                            group.data.name,
-                                                            false))
-                    else
-                        group.action_async {on = true, bri = 255, ct = 153}(
-                            response_handler(group.data.name, true))
-                    end
+                    local s = {on = not group.state.any_on}
+                    if s.on then s.bri, s.ct = 254, 153 end
+                    group.action_async(s)(response_handler(group, s))
                 end)
                 return true
             end

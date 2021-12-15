@@ -1,6 +1,7 @@
 -- username:  "VvK6VXe-OW-AVeaE-KBf08aro9ohw9qiOAvI5UZF"
 -- clientkey: "2031F8B38804A3823110B1D08AAED1A1"
 local M = {lights = {}}
+require 'hue.stringutils'
 local http = require 'http'
 local a = require 'asynctools'
 

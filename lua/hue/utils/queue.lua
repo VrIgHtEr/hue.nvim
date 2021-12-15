@@ -12,7 +12,7 @@ end
 local function grow(q)
     local newbuf = {}
     for x in q:iterator() do table.insert(newbuf, x) end
-    q.head = q:size()
+    q.head = q.size
     q.buf = newbuf
     q.capacity = q.capacity * 2
     q.parity = false
@@ -74,5 +74,9 @@ function M.new()
         buf = {}
     }, MT)
 end
-function MT.__index(o, k) return MT[k] end
+
+function MT.__index(o, k)
+    if k == "size" then return MT.size(o) end
+    return MT[k]
+end
 return M

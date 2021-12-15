@@ -2,14 +2,6 @@ local http = {}
 
 local a = require 'hue.async'
 local uv = vim.loop
-local function alert(msg, err)
-    if err then
-        err = "error"
-    else
-        err = "info"
-    end
-    require 'notify'(msg, err, {title = "http"})
-end
 
 local stringstream = require 'hue.stringstream'
 
