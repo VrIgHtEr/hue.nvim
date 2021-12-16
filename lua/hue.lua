@@ -3,7 +3,7 @@
 local M = {lights = {}}
 require 'hue.stringutils'
 local http = require 'http'
-local a = require 'asynctools'
+local a = require 'toolshed.async'
 
 local function new_http_request_opts()
     return {method = "GET", headers = {['content-type'] = "application/json"}}

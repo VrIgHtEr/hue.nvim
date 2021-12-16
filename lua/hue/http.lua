@@ -1,6 +1,6 @@
 local http = {}
 
-local a = require 'hue.async'
+local a = require 'toolshed.async'
 local uv = vim.loop
 
 local stringstream = require 'hue.stringstream'
