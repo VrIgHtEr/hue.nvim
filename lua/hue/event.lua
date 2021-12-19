@@ -34,7 +34,7 @@ local function poll()
             end
             pgroups = groups
         end
-        if polling then poll_timer:start(5000, 0, function() poll() end) end
+        if polling then poll_timer:start(2500, 0, function() poll() end) end
     end)
 end
 
