@@ -46,7 +46,6 @@ end
 
 function event.poll_stop()
     if not polling then return end
-
     polling = false
 end
 
