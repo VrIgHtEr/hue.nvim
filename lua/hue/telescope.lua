@@ -11,8 +11,8 @@ local function response_handler(o, s)
     return function(response, err)
         if not response then
             print(vim.inspect(err))
-            require 'notify'("Failed to communicate with hue bridge", "error",
-                             {title = "Philips Hue"})
+            vim.notify("Failed to communicate with hue bridge", "error",
+                       {title = "Philips Hue"})
             return
         end
         local state_string
@@ -21,8 +21,8 @@ local function response_handler(o, s)
         else
             state_string = "off"
         end
-        require 'notify'("Turned " .. state_string .. " " .. o.data.name,
-                         "info", {title = "Philips Hue"})
+        vim.notify("Turned " .. state_string .. " " .. o.data.name, "info",
+                   {title = "Philips Hue"})
     end
 end
 
@@ -31,8 +31,8 @@ function M.toggle_lights(opts)
     return a.sync(function()
         local lights, err = hue.lights.get_a()
         if not lights then
-            require 'notify'("Failed to communicate with bridge\n\n" ..
-                                 tostring(err), "error", {title = "Philips Hue"})
+            vim.notify("Failed to communicate with bridge\n\n" .. tostring(err),
+                       "error", {title = "Philips Hue"})
             return nil, err
         end
         local results = {}
@@ -81,8 +81,8 @@ function M.toggle_groups(opts)
     return a.sync(function()
         local groups, err = hue.groups.get_a()
         if not groups then
-            require 'notify'("Failed to communicate with bridge\n\n" ..
-                                 tostring(err), "error", {title = "Philips Hue"})
+            vim.notify("Failed to communicate with bridge\n\n" .. tostring(err),
+                       "error", {title = "Philips Hue"})
             return nil, err
         end
         local results = {}

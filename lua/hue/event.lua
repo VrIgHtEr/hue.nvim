@@ -3,7 +3,6 @@ local hue = require 'hue'
 local a = require 'toolshed.async'
 local polling = false
 local poll_timer = vim.loop.new_timer()
-local notify = require 'notify'
 local pgroups = {}
 
 local function fire_change_event(group)
@@ -13,8 +12,8 @@ local function fire_change_event(group)
     else
         str = "off"
     end
-    notify(group.data.name .. " has been turned " .. str, "info",
-           {title = "Philips Hue"})
+    vim.notify(group.data.name .. " has been turned " .. str, "info",
+               {title = "Philips Hue"})
 end
 
 local function diff_group(prev, new)
