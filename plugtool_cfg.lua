@@ -1,5 +1,5 @@
 return {
-	needs = { "nvim-telescope/telescope.nvim", "b0o/mapx.nvim" },
+	needs = { "nvim-telescope/telescope.nvim" },
 	after = { "nvim-telescope/telescope.nvim" },
 	config = {
 		{
