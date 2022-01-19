@@ -1,6 +1,6 @@
 return {
-	needs = { "vrighter/toolshed.nvim", "b0o/mapx.nvim", "nvim-telescope/telescope.nvim" },
-	after = { "vrighter/toolshed.nvim", "rcarriga/nvim-notify", "b0o/mapx.nvim", "nvim-telescope/telescope.nvim" },
+	needs = { "nvim-telescope/telescope.nvim" },
+	after = { "nvim-telescope/telescope.nvim" },
 	config = {
 		{
 			function()
