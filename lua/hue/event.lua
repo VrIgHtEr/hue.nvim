@@ -8,16 +8,17 @@ local pgroups = {}
 local function fire_change_event(group)
     local str
     if group.data.state.any_on then
-        str = "on"
+        str = 'on'
     else
-        str = "off"
+        str = 'off'
     end
-    vim.notify(group.data.name .. " has been turned " .. str, "info",
-               {title = "Philips Hue"})
+    vim.notify(group.data.name .. ' has been turned ' .. str, 'info', { title = 'Philips Hue' })
 end
 
 local function diff_group(prev, new)
-    if new.data.type ~= "Room" then return end
+    if new.data.type ~= 'Room' then
+        return
+    end
     if prev.data.state.any_on ~= new.data.state.any_on then
         fire_change_event(new)
     end
@@ -25,26 +26,36 @@ end
 
 local function poll()
     a.run(function()
-        local groups = hue.groups.get_a()
+        local groups = a.wait(hue.groups.get_async())
         if groups then
             for id, group in pairs(groups) do
                 local pgroup = pgroups[id]
-                if pgroup then diff_group(pgroup, group) end
+                if pgroup then
+                    diff_group(pgroup, group)
+                end
             end
             pgroups = groups
         end
-        if polling then poll_timer:start(3000, 0, function() poll() end) end
+        if polling then
+            poll_timer:start(3000, 0, function()
+                poll()
+            end)
+        end
     end)
 end
 
 function event.poll_start()
-    if polling then return end
+    if polling then
+        return
+    end
     polling = true
     poll()
 end
 
 function event.poll_stop()
-    if not polling then return end
+    if not polling then
+        return
+    end
     polling = false
 end
 
