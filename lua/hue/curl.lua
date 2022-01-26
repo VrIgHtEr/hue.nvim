@@ -31,7 +31,7 @@ function M.request_async(url, opts)
                 error('Invalid header key. Expected string but got ' .. type(k))
             end
             if type(v) ~= 'string' then
-                error('Invalid header value. Expected string but got ' .. type(v))
+                error('Invalid header value (' .. k .. '). Expected string but got ' .. type(v))
             end
         end
     end
@@ -136,7 +136,7 @@ local function events()
         '-k',
         '-N',
         '-H',
-        'hue-application-key: VvK6VXe-OW-AVeaE-KBf08aro9ohw9qiOAvI5UZF',
+        'hue-application-key: ' .. _G['hue-application-key'],
         '-H',
         'Accept: text/event-stream',
         'https://vrighter.com/eventstream/clip/v2',
@@ -156,7 +156,7 @@ a.run(function()
         method = 'PUT',
         headers = {
             ['Content-Type'] = 'application/json',
-            ['hue-application-key'] = 'VvK6VXe-OW-AVeaE-KBf08aro9ohw9qiOAvI5UZF',
+            ['hue-application-key'] = _G['hue-application-key'],
         },
         body = '{"on":{"on":false}}',
     }))

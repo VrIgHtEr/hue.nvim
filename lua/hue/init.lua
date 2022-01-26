@@ -1,5 +1,3 @@
--- username:  "VvK6VXe-OW-AVeaE-KBf08aro9ohw9qiOAvI5UZF"
--- clientkey: "2031F8B38804A3823110B1D08AAED1A1"
 local M = { lights = {} }
 local http = require 'toolshed.util.net.http'
 local a = require 'toolshed.async'
@@ -11,7 +9,7 @@ end
 function M.new(host)
     assert(host ~= nil, 'host cannot be nil')
     assert(type(host) == 'string', 'host must be a string')
-    local U = 'VvK6VXe-OW-AVeaE-KBf08aro9ohw9qiOAvI5UZF'
+    local U = _G['hue-application-key']
     local P = { base = '/api' }
     P.api = P.base .. '/' .. U
 
