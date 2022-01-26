@@ -141,11 +141,20 @@ local function events()
         'Accept: text/event-stream',
         'https://vrighter.com/eventstream/clip/v2',
     }
-    a.wait(a.spawn_lines_async(cmd, function(line)
+    local task, cancel = a.spawn_lines_async(cmd, function(line)
         print('OUT: ' .. vim.inspect(line))
     end, function(line)
         print('ERR: ' .. vim.inspect(line))
-    end))
+    end)
+    local timer = vim.loop.new_timer()
+    timer:start(10000, 0, function()
+        print 'cancelling'
+        cancel()
+        print 'cancelled'
+    end)
+    print 'starting'
+    a.wait(task)
+    print 'stopped'
 end
 
 require 'toolshed.util.string.global'
