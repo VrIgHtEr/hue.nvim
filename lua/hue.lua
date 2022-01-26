@@ -66,7 +66,7 @@ function M.new(host)
             end
         end
 
-        return a.create_await_wrappers(L)
+        return L
     end
 
     local function new_light(id, light)
@@ -89,7 +89,7 @@ function M.new(host)
             end
         end
 
-        return a.create_await_wrappers(L)
+        return L
     end
 
     N.lights.get_async = function(id)
@@ -168,10 +168,8 @@ function M.new(host)
         end
     end
 
-    return a.create_await_wrappers(N)
+    return N
 end
-
-a.create_await_wrappers(M)
 
 M = M.new 'hue'
 return M
