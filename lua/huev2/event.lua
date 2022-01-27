@@ -5,7 +5,41 @@ local a = require 'toolshed.async'
 
 local cleanup = nil
 
-local resources = { light = {}, grouped_light = {} }
+local resources = { grouped_light = {}, device = {}, bridge = {}, light = {}, scene = {}, room = {}, motion = {}, button = {} }
+
+local function notify(message, is_error)
+    if type(message) ~= 'string' then
+        message = ''
+    end
+    if is_error then
+        is_error = 'error'
+    else
+        is_error = 'info'
+    end
+    vim.schedule(function()
+        vim.notify(message, is_error, { title = 'Philips Hue' })
+    end)
+end
+
+local function log(message)
+    notify(message)
+end
+local function logerr(message)
+    notify(message, true)
+end
+
+local function create_signals_table()
+    local decode, encode = {}, {}
+    for k, v in pairs(vim.loop.constants) do
+        if k:len() > 3 and k:sub(1, 3) == 'SIG' then
+            decode[k] = v
+            encode[v] = k
+        end
+    end
+    return encode, decode
+end
+
+local signal_encode, signal_decode = create_signals_table()
 
 local function hue_event_handler(event)
     local etype = event.type
@@ -27,6 +61,8 @@ local function hue_event_handler(event)
             for k, v in pairs(update) do
                 resources[res_id][k] = v
             end
+            print(vim.inspect(update))
+            print('UPDATE:' .. res_type .. '/' .. res_id)
         end
     end
 end
@@ -125,19 +161,16 @@ function M.start()
         end
         local task, cancel = listen_event_async_cancelable(hue_event_handler, function(status, protocol)
             if status ~= 200 then
-                vim.schedule(function()
-                    vim.notify(
-                        'Failed to start event listener.\n Connected with ' .. protocol .. ' but got status code ' .. status,
-                        'error',
-                        { title = 'Philips Hue' }
-                    )
-                end)
+                logerr('Failed to start event listener.\n Connected with ' .. protocol .. ' but got status code ' .. status)
             end
         end)
         cleanup = cancel
-        a.wait(task)
-        vim.schedule(function()
-            vim.notify('Event listener has stopped', 'info', { title = 'Philips Hue' })
+        local code, signal = a.wait(task)
+        pcall(function()
+            if signal_encode(signal) then
+                signal = signal_encode[signal]
+            end
+            log('Event listener has stopped\n' .. 'RETURN: ' .. code .. '\nSIGNAL: ' .. signal)
         end)
     end)
 end
