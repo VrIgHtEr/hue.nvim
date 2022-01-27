@@ -38,7 +38,7 @@ local function listen_event_async_cancelable(event_cb, status_cb, header_cb)
         'hue-application-key: ' .. _G['hue-application-key'],
         '-H',
         'Accept: text/event-stream',
-        'https://vrighter.com/eventstream/clip/v2',
+        'https://' .. _G['hue-url'] .. '/eventstream/clip/v2',
     }
     local firstheader = true
     local previd = nil
@@ -117,10 +117,10 @@ end
 
 function M.start()
     a.run(function()
-        local function check_application_key_missing()
-            return type(_G['hue-application-key']) ~= 'string'
+        local function check_missing_global(key)
+            return type(_G[key]) ~= 'string'
         end
-        if check_application_key_missing() then
+        if check_missing_global 'hue-application-key' or check_missing_global 'hue-url' then
             return
         end
         local task, cancel = listen_event_async_cancelable(hue_event_handler, function(status, protocol)
