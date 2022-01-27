@@ -117,22 +117,38 @@ function M.refresh()
     end)
 end
 
-local function update_resource(e)
+local function process_update(e)
     print(vim.inspect(e))
     print('UPDATE:' .. e.type .. '/' .. e.id)
 end
+local function process_add(e)
+    print(vim.inspect(e))
+    print('ADD:' .. e.type .. '/' .. e.id)
+end
+local function process_delete(e)
+    print(vim.inspect(e))
+    print('DELETE:' .. e.type .. '/' .. e.id)
+end
+local function process_error(e)
+    print(vim.inspect(e))
+    print('ERROR:' .. e.type .. '/' .. e.id)
+end
 
-local function process_event(e)
-    local owner = find(e.owner)
-    if owner then
-        e.owner = owner
-        update_resource(e)
+local function process_event(etype, e)
+    if etype == 'update' then
+        process_update(e)
+    elseif etype == 'add' then
+        process_add(e)
+    elseif etype == 'delete' then
+        process_delete(e)
+    elseif etype == 'error' then
+        process_error(e)
     end
 end
 
-function M.on_event(e)
+function M.on_event(etype, e)
     -- TODO use queue if inventory scan is running
-    process_event(e)
+    process_event(etype, e)
 end
 
 return M

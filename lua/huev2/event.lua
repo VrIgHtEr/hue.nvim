@@ -34,12 +34,9 @@ local function logwarn(message)
 end
 
 local function hue_event_handler(event)
-    local etype = event.type
-    event.type = nil
-    if etype == 'update' then
-        for _, update in ipairs(event.data) do
-            inventory.on_event(update)
-        end
+    for _, update in ipairs(event.data) do
+        update.id_v1 = nil
+        inventory.on_event(event.type, update)
     end
 end
 
