@@ -2,6 +2,8 @@ local M = {}
 local a = require 'toolshed.async'
 local defaultFlags = { '-kvs' }
 
+local cleanup = function() end
+
 function M.request_async(url, opts)
     if type(url) ~= 'string' then
         error('Invalid url type. Expected string but got ' .. type(url))
@@ -163,14 +165,10 @@ local function process_events(events, event_cb)
     end
 end
 
-local function events(event_cb, status_cb, header_cb)
+local function listen_event_async_cancelable(event_cb, status_cb, header_cb)
     local cmd = {
         'curl',
-        '-v',
-        '-s',
-        '-k',
-        '-N',
-        '-H',
+        '-vskNH',
         'hue-application-key: ' .. _G['hue-application-key'],
         '-H',
         'Accept: text/event-stream',
@@ -179,7 +177,7 @@ local function events(event_cb, status_cb, header_cb)
     local firstheader = true
     local previd = nil
     local skipping = true
-    local task, cancel = a.spawn_lines_async(cmd, function(line)
+    return a.spawn_lines_async(cmd, function(line)
         if line:len() == 0 or line:sub(1, 1) == ':' then
             return
         end
@@ -243,28 +241,33 @@ local function events(event_cb, status_cb, header_cb)
             end
         end
     end)
-    local timer = vim.loop.new_timer()
-    timer:start(10000, 0, function()
-        cancel()
-    end)
-    a.wait(task)
 end
 
 require 'toolshed.util.string.global'
 vim.api.nvim_exec('mes clear', true)
-a.run(function()
-    events(hue_event_handler, function(status, protocol)
-        print('REQUEST: ' .. protocol .. ' ' .. status)
+function M.start()
+    a.run(function()
+        local task, cancel = listen_event_async_cancelable(hue_event_handler, function(status, protocol)
+            print(protocol .. ' ' .. status)
+        end)
+        cleanup = cancel
+        a.wait(task)
     end)
+end
 
-    a.wait(M.request_async('https://vrighter.com/clip/v2/resource/light/63557b88-0afb-472c-8c0c-c23f114fb8bf', {
-        method = 'PUT',
-        headers = {
-            ['Content-Type'] = 'application/json',
-            ['hue-application-key'] = _G['hue-application-key'],
-        },
-        body = '{"on":{"on":false}}',
-    }))
-    print(vim.inspect(resources))
-end)
+function M.stop()
+    if cleanup then
+        cleanup()
+    end
+end
+
+vim.api.nvim_exec(
+    [[
+augroup hue_event_close_group
+    autocmd!
+    autocmd VimLeave * lua require'hue.curl'.stop()
+augroup END
+]],
+    true
+)
 return M
