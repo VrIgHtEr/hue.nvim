@@ -151,9 +151,9 @@ local function check_retry(code, signal)
         if signal == sig.int then
             return false
         end
+        print('RETRY: ' .. sig[signal])
         return true
     end
-    return false
 end
 
 function M.start()
