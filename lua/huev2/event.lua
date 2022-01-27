@@ -1,9 +1,12 @@
 local M = {}
+local hue = require 'huev2'
+if hue.misconfigured then
+    return M
+end
 
 require 'toolshed.util.string.global'
 local a = require 'toolshed.async'
 local sig = require 'toolshed.util.sys.signal'
-
 local cleanup = nil
 
 local resources = { grouped_light = {}, device = {}, bridge = {}, light = {}, scene = {}, room = {}, motion = {}, button = {} }
@@ -60,10 +63,10 @@ local function listen_event_async_cancelable(event_cb, status_cb, header_cb)
     local cmd = {
         'curl',
         '-vskNH',
-        'hue-application-key: ' .. _G['hue-application-key'],
+        'hue-application-key: ' .. hue.appkey,
         '-H',
         'Accept: text/event-stream',
-        'https://' .. _G['hue-url'] .. '/eventstream/clip/v2',
+        hue.url_event,
     }
     local firstheader = true
     local previd = nil
@@ -159,12 +162,6 @@ end
 function M.start()
     a.run(function()
         ::retry::
-        local function check_missing_global(key)
-            return type(_G[key]) ~= 'string'
-        end
-        if check_missing_global 'hue-application-key' or check_missing_global 'hue-url' then
-            return
-        end
         local task, cancel = listen_event_async_cancelable(hue_event_handler, function(status, protocol)
             if status ~= 200 then
                 logerr('Failed to start event listener.\n Connected with ' .. protocol .. ' but got status code ' .. status)
