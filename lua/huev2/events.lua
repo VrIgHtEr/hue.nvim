@@ -1,7 +1,12 @@
 local M = {}
 
+require 'toolshed.util.string.global'
+local a = require 'toolshed.async'
+
 local cleanup = nil
+
 local resources = { light = {}, grouped_light = {} }
+
 local function hue_event_handler(event)
     local etype = event.type
     event.type = nil
@@ -22,16 +27,6 @@ local function hue_event_handler(event)
             for k, v in pairs(update) do
                 resources[res_id][k] = v
             end
-        end
-    end
-end
-
-local function process_events(events, event_cb)
-    if event_cb then
-        for _, event in ipairs(events) do
-            event.creationtime = nil
-            event.id = nil
-            event_cb(event)
         end
     end
 end
@@ -75,7 +70,13 @@ local function listen_event_async_cancelable(event_cb, status_cb, header_cb)
                 return vim.schedule(function()
                     local success, lua_events = pcall(vim.fn.json_decode, line)
                     if success then
-                        return process_events(lua_events, event_cb)
+                        if event_cb then
+                            for _, event in ipairs(lua_events) do
+                                event.creationtime = nil
+                                event.id = nil
+                                event_cb(event)
+                            end
+                        end
                     end
                 end)
             end
@@ -114,11 +115,12 @@ local function listen_event_async_cancelable(event_cb, status_cb, header_cb)
     end)
 end
 
-require 'toolshed.util.string.global'
 function M.start()
     a.run(function()
         local task, cancel = listen_event_async_cancelable(hue_event_handler, function(status, protocol)
-            print(protocol .. ' ' .. status)
+            if status ~= 200 then
+                print('HUEV2_EVENTS_ERROR: ' .. protocol .. ' ' .. status)
+            end
         end)
         cleanup = cancel
         a.wait(task)
