@@ -128,7 +128,15 @@ function M.request_async(url, opts)
     end
 end
 
-local function events()
+local function process_events(events, event_cb)
+    if event_cb then
+        for _, event in ipairs(events) do
+            event_cb(event)
+        end
+    end
+end
+
+local function events(event_cb, status_cb, header_cb)
     local cmd = {
         'curl',
         '-v',
@@ -141,27 +149,88 @@ local function events()
         'Accept: text/event-stream',
         'https://vrighter.com/eventstream/clip/v2',
     }
+    local firstheader = true
+    local previd = nil
+    local skipping = true
     local task, cancel = a.spawn_lines_async(cmd, function(line)
-        print('OUT: ' .. vim.inspect(line))
+        if line:len() == 0 or line:sub(1, 1) == ':' then
+            return
+        end
+        local idx = line:find ': '
+        if idx then
+            local linetype = line:sub(1, idx - 1)
+            line = line:sub(idx + 2)
+
+            if linetype == 'id' then
+                idx = line:find ':'
+                if idx then
+                    line = line:sub(1, idx - 1)
+                    local id = tonumber(line)
+                    if previd == nil or id > previd then
+                        previd = id
+                        skipping = false
+                    else
+                        skipping = true
+                    end
+                else
+                    skipping = true
+                end
+            elseif linetype == 'data' and not skipping and event_cb then
+                vim.schedule(function()
+                    local success, lua_events = pcall(vim.fn.json_decode, line)
+                    if success then
+                        return process_events(lua_events, event_cb)
+                    end
+                end)
+            end
+        end
     end, function(line)
-        print('ERR: ' .. vim.inspect(line))
+        if #line >= 3 and line:codepoints()() == '<' then
+            line = line:sub(3)
+            local protocol, status = nil, nil
+            if firstheader then
+                firstheader = false
+                local idx = line:find ' '
+                if idx then
+                    protocol = line:sub(1, idx - 1)
+                    line = line:sub(idx + 1)
+                    idx = line:find ' '
+                    if idx then
+                        status = tonumber(line:sub(1, idx - 1))
+                    end
+                end
+                if status_cb then
+                    return status_cb(status, protocol)
+                end
+            else
+                local idx = line:find ': '
+                if idx then
+                    if header_cb then
+                        return header_cb(line:sub(1, idx - 1), line:sub(idx + 2))
+                    end
+                end
+            end
+        end
     end)
     local timer = vim.loop.new_timer()
     timer:start(10000, 0, function()
-        print 'cancelling'
         cancel()
-        print 'cancelled'
     end)
-    print 'starting'
     a.wait(task)
-    print 'stopped'
 end
 
 require 'toolshed.util.string.global'
+vim.api.nvim_exec('mes clear', true)
 a.run(function()
-    events()
+    events(function(event)
+        print('EVENT: ' .. vim.inspect(event))
+    end, function(status, protocol)
+        print(protocol .. ' ' .. status)
+    end, function(key, value)
+        print(key .. ': ' .. value)
+    end)
 
-    local rx = a.wait(M.request_async('https://vrighter.com/clip/v2/resource/light/63557b88-0afb-472c-8c0c-c23f114fb8bf', {
+    a.wait(M.request_async('https://vrighter.com/clip/v2/resource/light/63557b88-0afb-472c-8c0c-c23f114fb8bf', {
         method = 'PUT',
         headers = {
             ['Content-Type'] = 'application/json',
@@ -169,8 +238,5 @@ a.run(function()
         },
         body = '{"on":{"on":false}}',
     }))
-
-    print 'RESPONSE BODY'
-    print(vim.inspect(rx))
 end)
 return M
