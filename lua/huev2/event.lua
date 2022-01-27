@@ -2,22 +2,21 @@ local M = {}
 
 require 'toolshed.util.string.global'
 local a = require 'toolshed.async'
+local sig = require 'toolshed.util.sys.signal'
 
 local cleanup = nil
 
 local resources = { grouped_light = {}, device = {}, bridge = {}, light = {}, scene = {}, room = {}, motion = {}, button = {} }
 
-local function notify(message, is_error)
+local function notify(message, level)
     if type(message) ~= 'string' then
         message = ''
     end
-    if is_error then
-        is_error = 'error'
-    else
-        is_error = 'info'
+    if type(level) ~= 'string' or (level ~= 'info' and level ~= 'error' and level ~= 'warn') then
+        level = 'info'
     end
     vim.schedule(function()
-        vim.notify(message, is_error, { title = 'Philips Hue' })
+        vim.notify(message, level, { title = 'Philips Hue' })
     end)
 end
 
@@ -25,21 +24,11 @@ local function log(message)
     notify(message)
 end
 local function logerr(message)
-    notify(message, true)
+    notify(message, 'error')
 end
-
-local function create_signals_table()
-    local decode, encode = {}, {}
-    for k, v in pairs(vim.loop.constants) do
-        if k:len() > 3 and k:sub(1, 3) == 'SIG' then
-            decode[k] = v
-            encode[v] = k
-        end
-    end
-    return encode, decode
+local function logwarn(message)
+    notify(message, 'warn')
 end
-
-local signal_encode = create_signals_table()
 
 local function hue_event_handler(event)
     local etype = event.type
@@ -151,8 +140,25 @@ local function listen_event_async_cancelable(event_cb, status_cb, header_cb)
     end)
 end
 
+local errors = require 'huev2.curl-errors'
+
+local function check_retry(code, signal)
+    logwarn('Event listener has stopped\n' .. 'RETURN: ' .. (errors[code] or tostring(code)) .. '\nSIGNAL: ' .. (sig[signal] or signal))
+    if code ~= errors.OK then
+        print('RETRY: ' .. (errors[code] or tostring(code)))
+        return false, 'Listener process returned nonzero return code: ' .. code .. ' ' .. (errors[code] or '')
+    else
+        if signal == sig.int then
+            return false
+        end
+        return true
+    end
+    return false
+end
+
 function M.start()
     a.run(function()
+        ::retry::
         local function check_missing_global(key)
             return type(_G[key]) ~= 'string'
         end
@@ -166,10 +172,18 @@ function M.start()
         end)
         cleanup = cancel
         local code, signal = a.wait(task)
-        if signal_encode[signal] then
-            signal = signal_encode[signal]
+        if not code then
+            return nil, 'Failed to start listener process' .. tostring(signal)
         end
-        log('Event listener has stopped\n' .. 'RETURN: ' .. code .. '\nSIGNAL: ' .. signal)
+        local r, err = check_retry(code, signal)
+        if r then
+            goto retry
+        end
+        log 'Event listener has stopped'
+        if err then
+            return nil, err
+        end
+        cleanup = nil
     end)
 end
 
