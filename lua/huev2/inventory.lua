@@ -15,6 +15,26 @@ local function find(tbl)
     end
 end
 
+local function link_inventory()
+    local s = { inventory }
+    while #s > 0 do
+        local c = table.remove(s)
+        for k, v in pairs(c) do
+            if type(v) == 'table' then
+                local link = find(v)
+                if link then
+                    c[k] = link
+                else
+                    if v.rid and v.rtype then
+                        print 'ERROR!!!!!'
+                    end
+                    table.insert(s, v)
+                end
+            end
+        end
+    end
+end
+
 local function link(x, key)
     if type(key) ~= 'string' then
         key = 'owner'
@@ -28,33 +48,28 @@ local function link(x, key)
 end
 
 local linkers = {
-    light = link,
-    scene = function(x)
-        link(x, 'group')
-        for _, y in ipairs(x.actions) do
-            link(y, 'target')
-        end
-    end,
-    room = function(_) end,
-    zone = function(_) end,
-    bridge_home = function(_) end,
-    grouped_light = function(_) end,
-    device = function(_) end,
-    bridge = link,
-    device_power = link,
-    zigbee_connectivity = link,
-    zgp_connectivity = function(_) end,
-    motion = link,
-    temperature = link,
-    light_level = link,
-    button = function(_) end,
-    behavior_script = function(_) end,
-    behavior_instance = function(_) end,
-    geofence_client = function(_) end,
-    geolocation = function(_) end,
-    entertainment_configuration = function(_) end,
-    entertainment = link,
-    homekit = function(_) end,
+    light = true,
+    scene = true,
+    room = true,
+    zone = true,
+    bridge_home = true,
+    grouped_light = true,
+    device = true,
+    bridge = true,
+    device_power = true,
+    zigbee_connectivity = true,
+    zgp_connectivity = true,
+    motion = true,
+    temperature = true,
+    light_level = true,
+    button = true,
+    behavior_script = true,
+    behavior_instance = true,
+    geofence_client = true,
+    geolocation = true,
+    entertainment_configuration = true,
+    entertainment = true,
+    homekit = true,
 }
 
 local function add_resource(x)
@@ -79,13 +94,6 @@ local function populate_inventory(response)
     if response.data then
         for _, v in ipairs(response.data) do
             add_resource(v)
-        end
-    end
-    for _, resources in pairs(inventory) do
-        for _, x in pairs(resources) do
-            if not linkers[x.type](x) then
-                print 'ERROR!!!!!'
-            end
         end
     end
 end
@@ -114,26 +122,7 @@ a.run(function()
     end
     populate_inventory(response)
 
-    inventory.scene = nil
-    inventory.temperature = nil
-    inventory.zigbee_connectivity = nil
-    inventory.motion = nil
-    inventory.light_level = nil
-    inventory.light = nil
-    inventory.geolocation = nil
-    inventory.homekit = nil
-    inventory.grouped_light = nil
-    inventory.entertainment = nil
-    inventory.device_power = nil
-    inventory.behavior_script = nil
-    inventory.bridge = nil
-
-    --incomplete
-    inventory.room = nil
-    inventory.entertainment_configuration = nil
-    inventory.device = nil
-    inventory.bridge_home = nil
-    inventory.behavior_instance = nil
+    link_inventory()
     print(vim.inspect(inventory))
     return response
 end)
