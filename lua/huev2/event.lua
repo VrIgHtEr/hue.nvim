@@ -39,7 +39,7 @@ local function create_signals_table()
     return encode, decode
 end
 
-local signal_encode, signal_decode = create_signals_table()
+local signal_encode = create_signals_table()
 
 local function hue_event_handler(event)
     local etype = event.type
@@ -166,12 +166,10 @@ function M.start()
         end)
         cleanup = cancel
         local code, signal = a.wait(task)
-        pcall(function()
-            if signal_encode(signal) then
-                signal = signal_encode[signal]
-            end
-            log('Event listener has stopped\n' .. 'RETURN: ' .. code .. '\nSIGNAL: ' .. signal)
-        end)
+        if signal_encode[signal] then
+            signal = signal_encode[signal]
+        end
+        log('Event listener has stopped\n' .. 'RETURN: ' .. code .. '\nSIGNAL: ' .. signal)
     end)
 end
 
