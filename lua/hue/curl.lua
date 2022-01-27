@@ -128,9 +128,36 @@ function M.request_async(url, opts)
     end
 end
 
+local resources = { light = {}, grouped_light = {} }
+local function hue_event_handler(event)
+    local etype = event.type
+    event.type = nil
+    if etype == 'update' then
+        for _, update in ipairs(event.data) do
+            local res_id = update.id
+            local res_type = update.type
+            update.id, update.type, update.id_v1, update.owner = nil, nil, nil, nil
+            if not resources[res_id] then
+                resources[res_id] = {}
+            end
+            if not resources[res_type] then
+                resources[res_type] = {}
+            end
+            if not resources[res_type][res_id] then
+                resources[res_type][res_id] = resources[res_id]
+            end
+            for k, v in pairs(update) do
+                resources[res_id][k] = v
+            end
+        end
+    end
+end
+
 local function process_events(events, event_cb)
     if event_cb then
         for _, event in ipairs(events) do
+            event.creationtime = nil
+            event.id = nil
             event_cb(event)
         end
     end
@@ -176,7 +203,7 @@ local function events(event_cb, status_cb, header_cb)
                     skipping = true
                 end
             elseif linetype == 'data' and not skipping and event_cb then
-                vim.schedule(function()
+                return vim.schedule(function()
                     local success, lua_events = pcall(vim.fn.json_decode, line)
                     if success then
                         return process_events(lua_events, event_cb)
@@ -185,7 +212,7 @@ local function events(event_cb, status_cb, header_cb)
             end
         end
     end, function(line)
-        if #line >= 3 and line:codepoints()() == '<' then
+        if #line >= 3 and line:sub(1, 1) == '<' then
             line = line:sub(3)
             local protocol, status = nil, nil
             if firstheader then
@@ -200,13 +227,17 @@ local function events(event_cb, status_cb, header_cb)
                     end
                 end
                 if status_cb then
-                    return status_cb(status, protocol)
+                    return vim.schedule(function()
+                        return status_cb(status, protocol)
+                    end)
                 end
             else
                 local idx = line:find ': '
                 if idx then
                     if header_cb then
-                        return header_cb(line:sub(1, idx - 1), line:sub(idx + 2))
+                        return vim.schedule(function()
+                            return header_cb(line:sub(1, idx - 1), line:sub(idx + 2))
+                        end)
                     end
                 end
             end
@@ -222,12 +253,8 @@ end
 require 'toolshed.util.string.global'
 vim.api.nvim_exec('mes clear', true)
 a.run(function()
-    events(function(event)
-        print('EVENT: ' .. vim.inspect(event))
-    end, function(status, protocol)
-        print(protocol .. ' ' .. status)
-    end, function(key, value)
-        print(key .. ': ' .. value)
+    events(hue_event_handler, function(status, protocol)
+        print('REQUEST: ' .. protocol .. ' ' .. status)
     end)
 
     a.wait(M.request_async('https://vrighter.com/clip/v2/resource/light/63557b88-0afb-472c-8c0c-c23f114fb8bf', {
@@ -238,5 +265,6 @@ a.run(function()
         },
         body = '{"on":{"on":false}}',
     }))
+    print(vim.inspect(resources))
 end)
 return M
