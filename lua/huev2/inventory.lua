@@ -1,6 +1,3 @@
-package.loaded['huev2.rest'] = nil
-package.loaded['huev2.inventory'] = nil
-
 local M = { inventory = {} }
 
 local rest = require 'huev2.rest'
@@ -25,9 +22,6 @@ local function link_inventory()
                 if link then
                     c[k] = link
                 else
-                    if v.rid and v.rtype then
-                        print 'ERROR!!!!!'
-                    end
                     table.insert(s, v)
                 end
             end
@@ -35,19 +29,7 @@ local function link_inventory()
     end
 end
 
-local function link(x, key)
-    if type(key) ~= 'string' then
-        key = 'owner'
-    end
-    local owner = find(x[key])
-    if not owner then
-        return false
-    end
-    x[key] = owner
-    return true
-end
-
-local linkers = {
+local resource_types = {
     light = true,
     scene = true,
     room = true,
@@ -73,7 +55,7 @@ local linkers = {
 }
 
 local function add_resource(x)
-    if linkers[x.type] then
+    if resource_types[x.type] then
         local folder = inventory[x.type]
         if not folder then
             folder = {}
@@ -85,7 +67,6 @@ local function add_resource(x)
         folder[x.id] = x
         return true
     else
-        print('UNKNOWN RESOURCE TYPE: ' .. x.type)
         return false
     end
 end
@@ -98,33 +79,60 @@ local function populate_inventory(response)
     end
 end
 
-a.run(function()
-    vim.api.nvim_exec('mes clear', true)
-    local ret, err = a.wait(rest.request_async(hue.url_api .. '/resource', {
-        method = 'GET',
-        headers = {
-            ['hue-application-key'] = hue.appkey,
-        },
-    }))
-    if not ret then
-        return nil, 'ERROR: ' .. err
+local running = false
+function M.refresh()
+    if running then
+        return
     end
-    if ret.status ~= 200 then
-        return nil, 'HTTP_STATUS:' .. tostring(ret.status)
-    end
-    if ret.headers['content-type'] ~= 'application/json' then
-        return nil, 'CONTENT_FORMAT:' .. ret.headers['Content-Type']
-    end
-    a.main_loop()
-    local success, response = pcall(vim.fn.json_decode, ret.body)
-    if not success then
-        return nil, 'MALFORMED_RESPONSE'
-    end
-    populate_inventory(response)
+    running = true
+    a.run(function()
+        local ret, err = a.wait(rest.request_async(hue.url_api .. '/resource', {
+            method = 'GET',
+            headers = {
+                ['hue-application-key'] = hue.appkey,
+            },
+        }))
+        if not ret then
+            running = false
+            return nil, 'ERROR: ' .. err
+        end
+        if ret.status ~= 200 then
+            running = false
+            return nil, 'HTTP_STATUS:' .. tostring(ret.status)
+        end
+        if ret.headers['content-type'] ~= 'application/json' then
+            running = false
+            return nil, 'CONTENT_FORMAT:' .. ret.headers['Content-Type']
+        end
+        a.main_loop()
+        local success, response = pcall(vim.fn.json_decode, ret.body)
+        if not success then
+            running = false
+            return nil, 'MALFORMED_RESPONSE'
+        end
+        populate_inventory(response)
+        link_inventory()
+        running = false
+        return response
+    end)
+end
 
-    link_inventory()
-    print(vim.inspect(inventory))
-    return response
-end)
+local function update_resource(e)
+    print(vim.inspect(e))
+    print('UPDATE:' .. e.type .. '/' .. e.id)
+end
+
+local function process_event(e)
+    local owner = find(e.owner)
+    if owner then
+        e.owner = owner
+        update_resource(e)
+    end
+end
+
+function M.on_event(e)
+    -- TODO use queue if inventory scan is running
+    process_event(e)
+end
 
 return M

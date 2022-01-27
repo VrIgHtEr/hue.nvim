@@ -1,5 +1,7 @@
 local M = {}
 local hue = require 'huev2'
+local inventory = require 'huev2.inventory'
+
 if hue.misconfigured then
     return M
 end
@@ -8,8 +10,6 @@ require 'toolshed.util.string.global'
 local a = require 'toolshed.async'
 local sig = require 'toolshed.util.sys.signal'
 local cleanup = nil
-
-local resources = { grouped_light = {}, device = {}, bridge = {}, light = {}, scene = {}, room = {}, motion = {}, button = {} }
 
 local function notify(message, level)
     if type(message) ~= 'string' then
@@ -38,23 +38,7 @@ local function hue_event_handler(event)
     event.type = nil
     if etype == 'update' then
         for _, update in ipairs(event.data) do
-            local res_id = update.id
-            local res_type = update.type
-            update.id, update.type, update.id_v1, update.owner = nil, nil, nil, nil
-            if not resources[res_id] then
-                resources[res_id] = {}
-            end
-            if not resources[res_type] then
-                resources[res_type] = {}
-            end
-            if not resources[res_type][res_id] then
-                resources[res_type][res_id] = resources[res_id]
-            end
-            for k, v in pairs(update) do
-                resources[res_id][k] = v
-            end
-            print(vim.inspect(update))
-            print('UPDATE:' .. res_type .. '/' .. res_id)
+            inventory.on_event(update)
         end
     end
 end
@@ -168,6 +152,7 @@ function M.start()
             end
         end)
         cleanup = cancel
+        inventory.refresh()
         local code, signal = a.wait(task)
         if not code then
             return nil, 'Failed to start listener process' .. tostring(signal)
