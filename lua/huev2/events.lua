@@ -117,13 +117,28 @@ end
 
 function M.start()
     a.run(function()
+        local function check_application_key_missing()
+            return type(_G['hue-application-key']) ~= 'string'
+        end
+        if check_application_key_missing() then
+            return
+        end
         local task, cancel = listen_event_async_cancelable(hue_event_handler, function(status, protocol)
             if status ~= 200 then
-                print('HUEV2_EVENTS_ERROR: ' .. protocol .. ' ' .. status)
+                vim.schedule(function()
+                    vim.notify(
+                        'Failed to start event listener.\n Connected with ' .. protocol .. ' but got status code ' .. status,
+                        'error',
+                        { title = 'Philips Hue' }
+                    )
+                end)
             end
         end)
         cleanup = cancel
         a.wait(task)
+        vim.schedule(function()
+            vim.notify('Event listener has stopped', 'info', { title = 'Philips Hue' })
+        end)
     end)
 end
 
