@@ -14,7 +14,7 @@ local function get_resource(rtype, rid)
 end
 
 local function find(tbl)
-    if type(tbl) == 'table' and vim.tbl_count == 2 and type(tbl.rid) == 'string' and type(tbl.rtype) == 'string' then
+    if type(tbl) == 'table' and vim.tbl_count(tbl) == 2 and type(tbl.rid) == 'string' and type(tbl.rtype) == 'string' then
         return get_resource(tbl.rtype, tbl.rid)
     end
 end
