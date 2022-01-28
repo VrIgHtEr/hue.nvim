@@ -113,8 +113,6 @@ local function update_resource(r, e)
     local handler = update_events[R.type]
     if handler then
         handler(R, E)
-    else
-        print('UPDATE:' .. R.type .. '/' .. R.id)
     end
 end
 
@@ -128,17 +126,11 @@ local function process_update(e)
     end
 end
 
-local function process_add(e)
-    print('ADD:' .. e.type .. '/' .. e.id)
-end
+local function process_add(_) end
 
-local function process_delete(e)
-    print('DELETE:' .. e.type .. '/' .. e.id)
-end
+local function process_delete(_) end
 
-local function process_error(e)
-    print('ERROR:' .. e.type .. '/' .. e.id)
-end
+local function process_error(_) end
 
 local processing = false
 
