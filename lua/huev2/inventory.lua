@@ -207,4 +207,11 @@ function M.refresh()
     end
 end
 
+function M.get(str_id)
+    local idx = str_id:find '/'
+    if idx then
+        return get_resource(str_id:sub(1, idx - 1), str_id:sub(idx + 1))
+    end
+end
+
 return M
