@@ -100,7 +100,6 @@ end
 local errors = require 'huev2.curl-errors'
 
 local function check_retry(code, signal)
-    hue.logwarn('Event listener has stopped\n' .. 'RETURN: ' .. (errors[code] or tostring(code)) .. '\nSIGNAL: ' .. (sig[signal] or signal))
     if code ~= errors.OK then
         return false, 'Listener process returned nonzero return code: ' .. code .. ' ' .. (errors[code] or '')
     else
@@ -114,11 +113,7 @@ end
 function M.start()
     a.run(function()
         ::retry::
-        local task, cancel = listen_event_async_cancelable(hue_event_handler, function(status, protocol)
-            if status ~= 200 then
-                hue.logerr('Failed to start event listener.\n Connected with ' .. protocol .. ' but got status code ' .. status)
-            end
-        end)
+        local task, cancel = listen_event_async_cancelable(hue_event_handler)
         cleanup = cancel
         inventory.refresh()
         local code, signal = a.wait(task)
@@ -129,7 +124,6 @@ function M.start()
         if r then
             goto retry
         end
-        hue.log 'Event listener has stopped'
         if err then
             return nil, err
         end

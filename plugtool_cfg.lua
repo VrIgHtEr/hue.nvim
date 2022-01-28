@@ -10,7 +10,7 @@ return {
                 str = str .. 'off '
             end
             str = str .. r.owner.metadata.name
-            require('huev2.constants').log(str)
+            require('huev2.notify').log(str)
         end)
         vim.api.nvim_exec(
             [[augroup hue_event_close_group
