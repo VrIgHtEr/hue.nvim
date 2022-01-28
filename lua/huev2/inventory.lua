@@ -67,14 +67,35 @@ local function populate_inventory(response)
     end
 end
 
+local function update_resource(r, e)
+    local updated_resource = r
+    print('UPDATING:' .. updated_resource.type .. '/' .. updated_resource.id)
+    local q = { { r, e } }
+    while #q > 0 do
+        r, e = table.unpack(table.remove(q))
+        for k, v in pairs(e) do
+            if type(v) == 'table' then
+                if resource_tables[v] then
+                    r[k] = v
+                else
+                    table.insert { r[k], v }
+                end
+            else
+                r[k] = v
+            end
+        end
+    end
+    print(vim.inspect(updated_resource))
+    print('UPDATE:' .. updated_resource.type .. '/' .. updated_resource.id)
+end
+
 local refreshing = false
 local function process_update(e)
     local r = get_resource(e.type, e.id)
     e.type, e.id = nil, nil
     link(e)
     if r then
-        print(vim.inspect(e))
-        print('UPDATE:' .. r.type .. '/' .. r.id)
+        update_resource(r, e)
     end
 end
 

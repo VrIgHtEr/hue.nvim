@@ -35,6 +35,7 @@ local function logwarn(message)
 end
 
 local function hue_event_handler(event)
+    print(vim.inspect(event))
     for _, update in ipairs(event.data) do
         update.id_v1 = nil
         inventory.on_event(event.type, update)
