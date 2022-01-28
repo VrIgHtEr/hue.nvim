@@ -13,7 +13,6 @@ local M = {
     logerr = notify.logerr,
     logwarn = notify.logwarn,
     get = inventory.get,
-    statusline = require 'huev2.statusline',
 }
 
 return M

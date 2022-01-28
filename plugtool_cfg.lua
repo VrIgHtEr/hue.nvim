@@ -30,7 +30,7 @@ return {
                 if config.sections.lualine_c == nil then
                     config.sections.lualine_c = {}
                 end
-                table.insert(config.sections.lualine_c, "require'huev2'.statusline()")
+                table.insert(config.sections.lualine_c, "require'huev2.statusline'()")
             end,
         },
         {
