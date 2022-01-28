@@ -100,7 +100,7 @@ local function update_resource(r, e)
         r, e = unpack(table.remove(q))
         for k, v in pairs(e) do
             if type(v) == 'table' then
-                if resource_tables[v] then
+                if resource_tables[v] or not r[k] then
                     r[k] = v
                 else
                     table.insert(q, { r[k], v })
