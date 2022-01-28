@@ -1,6 +1,7 @@
 local M = { lights = {} }
 local http = require 'toolshed.util.net.http'
 local a = require 'toolshed.async'
+local json = require 'toolshed.util.json'
 
 local function new_http_request_opts()
     return { method = 'GET', headers = { ['content-type'] = 'application/json' } }
@@ -22,7 +23,7 @@ function M.new(host)
                 opts.method = method
                 if request then
                     a.main_loop()
-                    opts.body = vim.fn.json_encode(request)
+                    opts.body = json.encode(request)
                 end
                 local req, err = a.wait(http.request_async(host, P.api .. path, opts))
                 if not req then
@@ -35,7 +36,7 @@ function M.new(host)
                     return step(nil, 'invalid content-type: ' .. vim.inspect(req.headers['content-type']))
                 end
                 a.main_loop()
-                local ret = vim.fn.json_decode(table.concat(req.body, '\n'))
+                local ret = json.decode(table.concat(req.body, '\n'))
                 if not ret then
                     return step(nil, 'failed to decode json')
                 end

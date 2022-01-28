@@ -3,13 +3,17 @@ local M = {}
 local rest = require 'huev2.rest'
 local hue = require 'huev2'
 local a = require 'toolshed.async'
+local json = require 'toolshed.util.json'
 
 local inventory = {}
+local resource_tables = {}
 
 local function get_resource(rtype, rid)
-    local folder = inventory[rtype]
-    if folder then
-        return folder[rid]
+    if rtype and rid then
+        local folder = inventory[rtype]
+        if folder then
+            return folder[rid]
+        end
     end
 end
 
@@ -47,6 +51,8 @@ local function add_resource(x)
             return false
         end
         folder[x.id] = x
+        x.id_v1 = nil
+        resource_tables[x] = true
         return true
     else
         return false
@@ -63,8 +69,13 @@ end
 
 local refreshing = false
 local function process_update(e)
-    print(vim.inspect(e))
-    print('UPDATE:' .. e.type .. '/' .. e.id)
+    local r = get_resource(e.type, e.id)
+    e.type, e.id = nil, nil
+    link(e)
+    if r then
+        print(vim.inspect(e))
+        print('UPDATE:' .. r.type .. '/' .. r.id)
+    end
 end
 
 local function process_add(e)
@@ -111,43 +122,42 @@ function M.on_event(etype, e)
 end
 
 function M.refresh()
-    if refreshing then
-        return
+    if not refreshing then
+        refreshing = true
+        a.run(function()
+            local ret, err = a.wait(rest.request_async(hue.url_resource, {
+                method = 'GET',
+                headers = { ['hue-application-key'] = hue.appkey },
+            }))
+            if not ret then
+                refreshing = false
+                event_loop()
+                return nil, 'ERROR: ' .. err
+            end
+            if ret.status ~= 200 then
+                refreshing = false
+                event_loop()
+                return nil, 'HTTP_STATUS:' .. tostring(ret.status)
+            end
+            if ret.headers['content-type'] ~= 'application/json' then
+                refreshing = false
+                event_loop()
+                return nil, 'CONTENT_FORMAT:' .. ret.headers['Content-Type']
+            end
+            a.main_loop()
+            local success, response = pcall(json.decode, ret.body)
+            if not success then
+                refreshing = false
+                event_loop()
+                return nil, 'MALFORMED_RESPONSE'
+            end
+            populate_inventory(response)
+            link(inventory)
+            refreshing = false
+            event_loop()
+            return response
+        end)
     end
-    refreshing = true
-    a.run(function()
-        local ret, err = a.wait(rest.request_async(hue.url_resource, {
-            method = 'GET',
-            headers = { ['hue-application-key'] = hue.appkey },
-        }))
-        if not ret then
-            refreshing = false
-            event_loop()
-            return nil, 'ERROR: ' .. err
-        end
-        if ret.status ~= 200 then
-            refreshing = false
-            event_loop()
-            return nil, 'HTTP_STATUS:' .. tostring(ret.status)
-        end
-        if ret.headers['content-type'] ~= 'application/json' then
-            refreshing = false
-            event_loop()
-            return nil, 'CONTENT_FORMAT:' .. ret.headers['Content-Type']
-        end
-        a.main_loop()
-        local success, response = pcall(vim.fn.json_decode, ret.body)
-        if not success then
-            refreshing = false
-            event_loop()
-            return nil, 'MALFORMED_RESPONSE'
-        end
-        populate_inventory(response)
-        link(inventory)
-        refreshing = false
-        event_loop()
-        return response
-    end)
 end
 
 return M

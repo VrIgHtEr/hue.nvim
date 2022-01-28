@@ -1,6 +1,7 @@
 local M = {}
 local hue = require 'huev2'
 local inventory = require 'huev2.inventory'
+local json = require 'toolshed.util.json'
 
 if hue.misconfigured then
     return M
@@ -76,18 +77,16 @@ local function listen_event_async_cancelable(event_cb, status_cb, header_cb)
                     skipping = true
                 end
             elseif linetype == 'data' and not skipping and event_cb then
-                return vim.schedule(function()
-                    local success, lua_events = pcall(vim.fn.json_decode, line)
-                    if success then
-                        if event_cb then
-                            for _, event in ipairs(lua_events) do
-                                event.creationtime = nil
-                                event.id = nil
-                                event_cb(event)
-                            end
+                local success, lua_events = pcall(json.decode, line)
+                if success then
+                    if event_cb then
+                        for _, event in ipairs(lua_events) do
+                            event.creationtime = nil
+                            event.id = nil
+                            event_cb(event)
                         end
                     end
-                end)
+                end
             end
         end
     end, function(line)
@@ -106,17 +105,13 @@ local function listen_event_async_cancelable(event_cb, status_cb, header_cb)
                     end
                 end
                 if status_cb then
-                    return vim.schedule(function()
-                        return status_cb(status, protocol)
-                    end)
+                    return status_cb(status, protocol)
                 end
             else
                 local idx = line:find ': '
                 if idx then
                     if header_cb then
-                        return vim.schedule(function()
-                            return header_cb(line:sub(1, idx - 1), line:sub(idx + 2))
-                        end)
+                        return header_cb(line:sub(1, idx - 1), line:sub(idx + 2))
                     end
                 end
             end
