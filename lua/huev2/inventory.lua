@@ -78,7 +78,7 @@ local function update_resource(r, e)
                 if resource_tables[v] then
                     r[k] = v
                 else
-                    table.insert { r[k], v }
+                    table.insert(q, { r[k], v })
                 end
             else
                 r[k] = v
