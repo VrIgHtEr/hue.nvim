@@ -67,9 +67,34 @@ local function populate_inventory(response)
     end
 end
 
+local function unlink_event(e)
+    local q = { e }
+    while #q > 0 do
+        local x = table.remove(q)
+        if type(x) == 'table' then
+            for k, v in pairs(x) do
+                if resource_tables[v] then
+                    x[k] = v.type .. '/' .. v.id
+                else
+                    table.insert(q, v)
+                end
+            end
+        end
+    end
+end
+
+local update_events = {
+    light = function(r, e)
+        local str = { 'Updated ' .. r.type .. ': ' .. r.owner.metadata.name }
+        unlink_event(e)
+        table.insert(str, vim.inspect(e))
+        hue.log(table.concat(str, '\n'))
+    end,
+}
+
 local function update_resource(r, e)
-    local updated_resource = r
-    print('UPDATING:' .. updated_resource.type .. '/' .. updated_resource.id)
+    local R, E = r, e
+
     local q = { { r, e } }
     while #q > 0 do
         r, e = unpack(table.remove(q))
@@ -85,8 +110,12 @@ local function update_resource(r, e)
             end
         end
     end
-    print(vim.inspect(updated_resource))
-    print('UPDATE:' .. updated_resource.type .. '/' .. updated_resource.id)
+    local handler = update_events[R.type]
+    if handler then
+        handler(R, E)
+    else
+        print('UPDATE:' .. R.type .. '/' .. R.id)
+    end
 end
 
 local refreshing = false

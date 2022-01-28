@@ -12,30 +12,7 @@ local a = require 'toolshed.async'
 local sig = require 'toolshed.util.sys.signal'
 local cleanup = nil
 
-local function notify(message, level)
-    if type(message) ~= 'string' then
-        message = ''
-    end
-    if type(level) ~= 'string' or (level ~= 'info' and level ~= 'error' and level ~= 'warn') then
-        level = 'info'
-    end
-    vim.schedule(function()
-        vim.notify(message, level, { title = 'Philips Hue' })
-    end)
-end
-
-local function log(message)
-    notify(message)
-end
-local function logerr(message)
-    notify(message, 'error')
-end
-local function logwarn(message)
-    notify(message, 'warn')
-end
-
 local function hue_event_handler(event)
-    print(vim.inspect(event))
     for _, update in ipairs(event.data) do
         update.id_v1 = nil
         inventory.on_event(event.type, update)
@@ -123,15 +100,13 @@ end
 local errors = require 'huev2.curl-errors'
 
 local function check_retry(code, signal)
-    logwarn('Event listener has stopped\n' .. 'RETURN: ' .. (errors[code] or tostring(code)) .. '\nSIGNAL: ' .. (sig[signal] or signal))
+    hue.logwarn('Event listener has stopped\n' .. 'RETURN: ' .. (errors[code] or tostring(code)) .. '\nSIGNAL: ' .. (sig[signal] or signal))
     if code ~= errors.OK then
-        print('RETRY: ' .. (errors[code] or tostring(code)))
         return false, 'Listener process returned nonzero return code: ' .. code .. ' ' .. (errors[code] or '')
     else
         if signal == sig.int then
             return false
         end
-        print('RETRY: ' .. sig[signal])
         return true
     end
 end
@@ -141,7 +116,7 @@ function M.start()
         ::retry::
         local task, cancel = listen_event_async_cancelable(hue_event_handler, function(status, protocol)
             if status ~= 200 then
-                logerr('Failed to start event listener.\n Connected with ' .. protocol .. ' but got status code ' .. status)
+                hue.logerr('Failed to start event listener.\n Connected with ' .. protocol .. ' but got status code ' .. status)
             end
         end)
         cleanup = cancel
@@ -154,7 +129,7 @@ function M.start()
         if r then
             goto retry
         end
-        log 'Event listener has stopped'
+        hue.log 'Event listener has stopped'
         if err then
             return nil, err
         end
