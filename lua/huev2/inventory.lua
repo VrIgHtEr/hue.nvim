@@ -129,17 +129,14 @@ local function process_update(e)
 end
 
 local function process_add(e)
-    print(vim.inspect(e))
     print('ADD:' .. e.type .. '/' .. e.id)
 end
 
 local function process_delete(e)
-    print(vim.inspect(e))
     print('DELETE:' .. e.type .. '/' .. e.id)
 end
 
 local function process_error(e)
-    print(vim.inspect(e))
     print('ERROR:' .. e.type .. '/' .. e.id)
 end
 
