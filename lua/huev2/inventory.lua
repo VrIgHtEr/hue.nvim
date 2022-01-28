@@ -83,17 +83,40 @@ local function unlink_event(e)
     end
 end
 
+local user_events = {
+    light = {
+        on = function(r, c)
+            local str = r.owner.metadata.name .. ' has been turned '
+            if c.on then
+                str = str .. 'on'
+            else
+                str = str .. 'off'
+            end
+            hue.log(str)
+        end,
+    },
+}
+
 local update_events = {
-    light = function(r, e)
-        local str = { 'Updated ' .. r.type .. ': ' .. r.owner.metadata.name }
+    light = function(_, e)
         unlink_event(e)
-        table.insert(str, vim.inspect(e))
-        hue.log(table.concat(str, '\n'))
     end,
 }
 
+local function fire_user_event(r, key)
+    local handlers = user_events[r.type]
+    if handlers then
+        local handler = handlers[key]
+        if handler then
+            handler(r, r[key])
+        end
+    end
+end
+
 local function update_resource(r, e)
     local R, E = r, e
+
+    local fired_events = {}
 
     local q = { { r, e } }
     while #q > 0 do
@@ -108,11 +131,17 @@ local function update_resource(r, e)
             else
                 r[k] = v
             end
+            if r == R then
+                table.insert(fired_events, k)
+            end
         end
     end
     local handler = update_events[R.type]
     if handler then
         handler(R, E)
+    end
+    for _, x in ipairs(fired_events) do
+        fire_user_event(R, x)
     end
 end
 
