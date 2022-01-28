@@ -203,4 +203,8 @@ function M.get(str_id)
     end
 end
 
+function M.inventory()
+    return inventory
+end
+
 return M
