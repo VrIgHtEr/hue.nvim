@@ -72,7 +72,7 @@ local function update_resource(r, e)
     print('UPDATING:' .. updated_resource.type .. '/' .. updated_resource.id)
     local q = { { r, e } }
     while #q > 0 do
-        r, e = table.unpack(table.remove(q))
+        r, e = unpack(table.remove(q))
         for k, v in pairs(e) do
             if type(v) == 'table' then
                 if resource_tables[v] then
