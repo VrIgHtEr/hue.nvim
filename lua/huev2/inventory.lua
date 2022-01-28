@@ -1,26 +1,33 @@
-local M = { inventory = {} }
+local M = {}
 
 local rest = require 'huev2.rest'
 local hue = require 'huev2'
 local a = require 'toolshed.async'
 
-local inventory = M.inventory
+local inventory = {}
 
-local function find(tbl)
-    if type(tbl) == 'table' and type(tbl.rid) == 'string' and type(tbl.rtype) == 'string' and inventory[tbl.rtype] then
-        return inventory[tbl.rtype][tbl.rid]
+local function get_resource(rtype, rid)
+    local folder = inventory[rtype]
+    if folder then
+        return folder[rid]
     end
 end
 
-local function link_inventory()
-    local s = { inventory }
+local function find(tbl)
+    if type(tbl) == 'table' and vim.tbl_count == 2 and type(tbl.rid) == 'string' and type(tbl.rtype) == 'string' then
+        return get_resource(tbl.rtype, tbl.rid)
+    end
+end
+
+local function link(x)
+    local s = { x }
     while #s > 0 do
         local c = table.remove(s)
         for k, v in pairs(c) do
             if type(v) == 'table' then
-                local link = find(v)
-                if link then
-                    c[k] = link
+                local l = find(v)
+                if l then
+                    c[k] = l
                 else
                     table.insert(s, v)
                 end
@@ -29,33 +36,8 @@ local function link_inventory()
     end
 end
 
-local resource_types = {
-    light = true,
-    scene = true,
-    room = true,
-    zone = true,
-    bridge_home = true,
-    grouped_light = true,
-    device = true,
-    bridge = true,
-    device_power = true,
-    zigbee_connectivity = true,
-    zgp_connectivity = true,
-    motion = true,
-    temperature = true,
-    light_level = true,
-    button = true,
-    behavior_script = true,
-    behavior_instance = true,
-    geofence_client = true,
-    geolocation = true,
-    entertainment_configuration = true,
-    entertainment = true,
-    homekit = true,
-}
-
 local function add_resource(x)
-    if resource_types[x.type] then
+    if hue.url_resources[x.type] then
         local folder = inventory[x.type]
         if not folder then
             folder = {}
@@ -79,76 +61,93 @@ local function populate_inventory(response)
     end
 end
 
-local running = false
-function M.refresh()
-    if running then
-        return
-    end
-    running = true
-    a.run(function()
-        local ret, err = a.wait(rest.request_async(hue.url_api .. '/resource', {
-            method = 'GET',
-            headers = {
-                ['hue-application-key'] = hue.appkey,
-            },
-        }))
-        if not ret then
-            running = false
-            return nil, 'ERROR: ' .. err
-        end
-        if ret.status ~= 200 then
-            running = false
-            return nil, 'HTTP_STATUS:' .. tostring(ret.status)
-        end
-        if ret.headers['content-type'] ~= 'application/json' then
-            running = false
-            return nil, 'CONTENT_FORMAT:' .. ret.headers['Content-Type']
-        end
-        a.main_loop()
-        local success, response = pcall(vim.fn.json_decode, ret.body)
-        if not success then
-            running = false
-            return nil, 'MALFORMED_RESPONSE'
-        end
-        populate_inventory(response)
-        link_inventory()
-        running = false
-        return response
-    end)
-end
-
+local refreshing = false
 local function process_update(e)
     print(vim.inspect(e))
     print('UPDATE:' .. e.type .. '/' .. e.id)
 end
+
 local function process_add(e)
     print(vim.inspect(e))
     print('ADD:' .. e.type .. '/' .. e.id)
 end
+
 local function process_delete(e)
     print(vim.inspect(e))
     print('DELETE:' .. e.type .. '/' .. e.id)
 end
+
 local function process_error(e)
     print(vim.inspect(e))
     print('ERROR:' .. e.type .. '/' .. e.id)
 end
 
-local function process_event(etype, e)
-    if etype == 'update' then
-        process_update(e)
-    elseif etype == 'add' then
-        process_add(e)
-    elseif etype == 'delete' then
-        process_delete(e)
-    elseif etype == 'error' then
-        process_error(e)
+local processing = false
+
+local q = require('toolshed.util.generic.queue').new()
+
+local function event_loop()
+    if not processing and not refreshing then
+        processing = true
+        while not refreshing and q:size() > 0 do
+            local e = q:dequeue()
+            if e.type == 'update' then
+                process_update(e.event)
+            elseif e.type == 'add' then
+                process_add(e.event)
+            elseif e.type == 'delete' then
+                process_delete(e.event)
+            elseif e.type == 'error' then
+                process_error(e.event)
+            end
+        end
+        processing = false
     end
 end
 
 function M.on_event(etype, e)
-    -- TODO use queue if inventory scan is running
-    process_event(etype, e)
+    q:enqueue { type = etype, event = e }
+    event_loop()
+end
+
+function M.refresh()
+    if refreshing then
+        return
+    end
+    refreshing = true
+    a.run(function()
+        local ret, err = a.wait(rest.request_async(hue.url_resource, {
+            method = 'GET',
+            headers = { ['hue-application-key'] = hue.appkey },
+        }))
+        if not ret then
+            refreshing = false
+            event_loop()
+            return nil, 'ERROR: ' .. err
+        end
+        if ret.status ~= 200 then
+            refreshing = false
+            event_loop()
+            return nil, 'HTTP_STATUS:' .. tostring(ret.status)
+        end
+        if ret.headers['content-type'] ~= 'application/json' then
+            refreshing = false
+            event_loop()
+            return nil, 'CONTENT_FORMAT:' .. ret.headers['Content-Type']
+        end
+        a.main_loop()
+        local success, response = pcall(vim.fn.json_decode, ret.body)
+        if not success then
+            refreshing = false
+            event_loop()
+            return nil, 'MALFORMED_RESPONSE'
+        end
+        populate_inventory(response)
+        link(inventory)
+        refreshing = false
+        event_loop()
+        return response
+    end)
 end
 
 return M
