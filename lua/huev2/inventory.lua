@@ -4,6 +4,7 @@ local rest = require 'huev2.rest'
 local hue = require 'huev2.constants'
 local a = require 'toolshed.async'
 local json = require 'toolshed.util.json'
+local event = require 'huev2.event'
 
 local inventory = {}
 local resource_tables = {}
@@ -83,33 +84,8 @@ local function unlink_event(e)
     end
 end
 
-local user_events = {
-    light = {
-        on = function(r, c)
-            local str = 'Turned '
-            if c.on then
-                str = str .. 'on '
-            else
-                str = str .. 'off '
-            end
-            str = str .. r.owner.metadata.name
-            hue.log(str)
-        end,
-    },
-}
-
-local function fire_user_event(r, key)
-    local handlers = user_events[r.type]
-    if handlers then
-        local handler = handlers[key]
-        if handler then
-            handler(r, r[key])
-        end
-    end
-end
-
 local function update_resource(r, e)
-    local R, E = r, e
+    local R = r
 
     local fired_events = {}
 
@@ -131,9 +107,9 @@ local function update_resource(r, e)
             end
         end
     end
-    unlink_event(E)
     for _, x in ipairs(fired_events) do
-        fire_user_event(R, x)
+        unlink_event(x)
+        event.fire(R, x)
     end
 end
 
@@ -157,7 +133,7 @@ local processing = false
 
 local q = require('toolshed.util.generic.queue').new()
 
-local function event_loop()
+local function process_loop()
     if not processing and not refreshing then
         processing = true
         while not refreshing and q:size() > 0 do
@@ -178,7 +154,7 @@ end
 
 function M.on_event(etype, e)
     q:enqueue { type = etype, event = e }
-    event_loop()
+    process_loop()
 end
 
 function M.refresh()
@@ -191,30 +167,30 @@ function M.refresh()
             }))
             if not ret then
                 refreshing = false
-                event_loop()
+                process_loop()
                 return nil, 'ERROR: ' .. err
             end
             if ret.status ~= 200 then
                 refreshing = false
-                event_loop()
+                process_loop()
                 return nil, 'HTTP_STATUS:' .. tostring(ret.status)
             end
             if ret.headers['content-type'] ~= 'application/json' then
                 refreshing = false
-                event_loop()
+                process_loop()
                 return nil, 'CONTENT_FORMAT:' .. ret.headers['Content-Type']
             end
             a.main_loop()
             local success, response = pcall(json.decode, ret.body)
             if not success then
                 refreshing = false
-                event_loop()
+                process_loop()
                 return nil, 'MALFORMED_RESPONSE'
             end
             populate_inventory(response)
             link(inventory)
             refreshing = false
-            event_loop()
+            process_loop()
             return response
         end)
     end

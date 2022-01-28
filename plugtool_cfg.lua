@@ -2,6 +2,16 @@ return {
     needs = { 'nvim-telescope/telescope.nvim' },
     after = { 'nvim-telescope/telescope.nvim' },
     config = function()
+        require('huev2').subscribe('light.on', function(r, c)
+            local str = 'Turned '
+            if c.on then
+                str = str .. 'on '
+            else
+                str = str .. 'off '
+            end
+            str = str .. r.owner.metadata.name
+            require('huev2.constants').log(str)
+        end)
         vim.api.nvim_exec(
             [[augroup hue_event_close_group
 autocmd!

@@ -1,12 +1,11 @@
-local M = {}
-local event = require 'huev2.eventloop'
+local eventloop = require 'huev2.eventloop'
+local event = require 'huev2.event'
 
-function M.start()
-    return event.start()
-end
-
-function M.stop()
-    return event.stop()
-end
+local M = {
+    start = eventloop.start,
+    stop = eventloop.stop,
+    subscribe = event.subscribe,
+    unsubscribe = event.unsubscribe,
+}
 
 return M
