@@ -98,12 +98,6 @@ local user_events = {
     },
 }
 
-local update_events = {
-    light = function(_, e)
-        unlink_event(e)
-    end,
-}
-
 local function fire_user_event(r, key)
     local handlers = user_events[r.type]
     if handlers then
@@ -137,10 +131,7 @@ local function update_resource(r, e)
             end
         end
     end
-    local handler = update_events[R.type]
-    if handler then
-        handler(R, E)
-    end
+    unlink_event(E)
     for _, x in ipairs(fired_events) do
         fire_user_event(R, x)
     end

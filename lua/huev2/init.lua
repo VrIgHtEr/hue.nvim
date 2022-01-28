@@ -1,5 +1,5 @@
 local M = {}
-local event = require 'huev2.event'
+local event = require 'huev2.eventloop'
 
 function M.start()
     return event.start()
