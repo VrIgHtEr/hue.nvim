@@ -1,5 +1,5 @@
 local M = {}
-local hue = require 'huev2'
+local hue = require 'huev2.constants'
 local inventory = require 'huev2.inventory'
 local json = require 'toolshed.util.json'
 

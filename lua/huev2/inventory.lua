@@ -1,7 +1,7 @@
 local M = {}
 
 local rest = require 'huev2.rest'
-local hue = require 'huev2'
+local hue = require 'huev2.constants'
 local a = require 'toolshed.async'
 local json = require 'toolshed.util.json'
 
@@ -86,12 +86,13 @@ end
 local user_events = {
     light = {
         on = function(r, c)
-            local str = r.owner.metadata.name .. ' has been turned '
+            local str = 'Turned '
             if c.on then
-                str = str .. 'on'
+                str = str .. 'on '
             else
-                str = str .. 'off'
+                str = str .. 'off '
             end
+            str = str .. r.owner.metadata.name
             hue.log(str)
         end,
     },
