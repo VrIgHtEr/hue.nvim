@@ -1,5 +1,4 @@
 local M = {}
-local hue = require 'huev2.constants'
 
 local user_events = {}
 
