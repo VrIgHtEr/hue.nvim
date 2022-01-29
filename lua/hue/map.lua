@@ -2,8 +2,22 @@ local M = {}
 local hue = require 'hue'
 local coordinates = {
     ['study light'] = { 0.9, 0.2 },
-    ['The Sun'] = { 0.8, 0.1 },
     ['front door light'] = { 0.05, 0.95 },
+    ['shower light'] = { 0.9, 0.05 },
+    ['The Sun'] = { 0.8, 0.1 },
+    ['spare bedroom light 1'] = { 0.3, 0.1 },
+    ['spare bedroom light 2'] = { 0.3, 0.1 },
+    ['spare bedroom light 3'] = { 0.3, 0.1 },
+    ['spare bedroom light 4'] = { 0.3, 0.1 },
+    ['spare bedroom light 5'] = { 0.3, 0.1 },
+    ['spare bedroom light 6'] = { 0.3, 0.1 },
+    ['living room light 1'] = { 0.4, 0.5 },
+    ['living room light 2'] = { 0.4, 0.5 },
+    ['living room light 3'] = { 0.4, 0.5 },
+    ['living room light 4'] = { 0.4, 0.5 },
+    ['kitchen light 1'] = { 0.75, 0.75 },
+    ['kitchen light 2'] = { 0.75, 0.75 },
+    ['kitchen light 3'] = { 0.75, 0.75 },
 }
 
 local function get_map_entries()
