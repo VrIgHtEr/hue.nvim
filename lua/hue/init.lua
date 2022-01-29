@@ -1,7 +1,7 @@
-local eventloop = require 'huev2.eventloop'
-local event = require 'huev2.event'
-local inventory = require 'huev2.inventory'
-local notify = require 'huev2.notify'
+local eventloop = require 'hue.eventloop'
+local event = require 'hue.event'
+local inventory = require 'hue.inventory'
+local notify = require 'hue.notify'
 
 local M = {
     start = eventloop.start,

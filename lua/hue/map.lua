@@ -1,5 +1,5 @@
 local M = {}
-local hue = require 'huev2'
+local hue = require 'hue'
 function M.show()
     local buf = vim.api.nvim_create_buf(false, true)
     vim.api.nvim_buf_set_lines(buf, 0, -1, true, { 'test', 'text' })

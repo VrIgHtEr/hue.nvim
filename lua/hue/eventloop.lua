@@ -1,6 +1,8 @@
 local M = {}
-local hue = require 'huev2.constants'
-local inventory = require 'huev2.inventory'
+local hue = require 'hue.constants'
+local inventory = require 'hue.inventory'
+local errors = require 'hue.curl-errors'
+
 local json = require 'toolshed.util.json'
 
 if hue.misconfigured then
@@ -96,8 +98,6 @@ local function listen_event_async_cancelable(event_cb, status_cb, header_cb)
         end
     end)
 end
-
-local errors = require 'huev2.curl-errors'
 
 local function check_retry(code, signal)
     if code ~= errors.OK then

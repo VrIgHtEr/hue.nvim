@@ -1,10 +1,10 @@
 local M = {}
 
-local rest = require 'huev2.rest'
-local hue = require 'huev2.constants'
+local rest = require 'hue.rest'
+local hue = require 'hue.constants'
+local event = require 'hue.event'
 local a = require 'toolshed.async'
 local json = require 'toolshed.util.json'
-local event = require 'huev2.event'
 
 local inventory = {}
 local resource_tables = {}

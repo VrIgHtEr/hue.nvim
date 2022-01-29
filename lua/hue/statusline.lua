@@ -1,5 +1,5 @@
 require 'toolshed.util.string.global'
-local hue = require 'huev2'
+local hue = require 'hue'
 return function()
     local inventory = hue.inventory()
     if inventory.light then
