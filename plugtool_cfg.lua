@@ -4,8 +4,8 @@ return {
     before = { 'nvim-lualine/lualine.nvim' },
     config = {
         function()
-            nnoremap('<leader>sS', ':lua require"hue/telescope".toggle_lights()()<cr>', 'silent', 'Hue: switch on and off individual lights')
-            nnoremap('<leader>ss', ':lua require"hue/telescope".toggle_groups()()<cr>', 'silent', 'Hue: switch on and off room lights')
+            nnoremap('<leader>sS', ':lua require"huev1/telescope".toggle_lights()()<cr>', 'silent', 'Hue: switch on and off individual lights')
+            nnoremap('<leader>ss', ':lua require"huev1/telescope".toggle_groups()()<cr>', 'silent', 'Hue: switch on and off room lights')
             vim.api.nvim_exec("augroup hue_event_close_group\nautocmd!\nautocmd VimLeave * lua require'huev2'.stop()\naugroup END", true)
             require('huev2').start()
         end,
