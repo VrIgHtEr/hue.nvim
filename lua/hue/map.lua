@@ -246,6 +246,3 @@ end
 hue.subscribe('light.on', redraw)
 
 return M
---[[
-package.loaded['hue.map'] = nil print(require'hue.map'.show(20, 20))
---]]
