@@ -1,4 +1,5 @@
 local M = {}
+local defrows, defcols = 20, 20
 local hue = require 'hue'
 local coordinates = {
     ['study light'] = { 0.9, 0.2 },
@@ -154,7 +155,16 @@ local function render(rows, cols)
     return lines
 end
 
+local win = nil
+local buf = nil
+
 function M.show(rows, cols)
+    if rows == nil then
+        rows = defrows
+    end
+    if cols == nil then
+        cols = defcols
+    end
     if type(rows) ~= 'number' then
         return nil, 'rows is not a number'
     end
@@ -168,29 +178,72 @@ function M.show(rows, cols)
     if cols < 1 then
         return nil, 'cols < 1'
     end
+    defrows, defcols = rows, cols
+
+    local cwin = vim.api.nvim_get_current_win()
+
+    if win then
+        local success = pcall(vim.api.nvim_set_current_win, win)
+        if not success then
+            win = nil
+        end
+    end
 
     local lines = render(rows, cols)
 
-    local buf = vim.api.nvim_create_buf(false, true)
-    vim.api.nvim_buf_set_option(buf, 'filetype', 'philips_hue_map')
+    if not buf then
+        buf = vim.api.nvim_create_buf(false, true)
+        vim.api.nvim_buf_set_option(buf, 'filetype', 'philips_hue_map')
+    end
+
+    vim.api.nvim_buf_set_option(buf, 'modifiable', true)
     vim.api.nvim_buf_set_lines(buf, 0, -1, true, lines)
-    local win = vim.api.nvim_open_win(buf, false, {
-        width = cols,
-        height = math.floor((rows + 1) / 2),
-        relative = 'editor',
-        col = 1073741824,
-        row = 0,
-        anchor = 'NE',
-        style = 'minimal',
-        focusable = false,
-        border = 'rounded',
-    })
-    vim.api.nvim_set_current_win(win)
-    nnoremap('q', function()
-        vim.api.nvim_buf_delete(buf, { force = true })
-    end, 'buffer', 'silent', 'Closes the light map')
-    vim.bo.modifiable = false
+    vim.api.nvim_buf_set_option(buf, 'modifiable', false)
+
+    if not win then
+        win = vim.api.nvim_open_win(buf, false, {
+            width = cols,
+            height = math.floor((rows + 1) / 2),
+            relative = 'editor',
+            col = 1073741824,
+            row = 0,
+            anchor = 'NE',
+            style = 'minimal',
+            focusable = false,
+            border = 'rounded',
+        })
+        vim.api.nvim_set_current_win(win)
+    else
+        vim.api.nvim_win_set_buf(win, buf)
+    end
+
+    vim.api.nvim_set_current_win(cwin)
 end
+
+function M.hide()
+    if win then
+        vim.api.nvim_win_close(win, true)
+        win = nil
+    end
+end
+
+function M.toggle(rows, cols)
+    if win then
+        M.hide()
+    else
+        M.show(rows, cols)
+    end
+end
+
+local function redraw()
+    vim.schedule(function()
+        if win then
+            return M.show(defrows, defcols)
+        end
+    end)
+end
+
+hue.subscribe('light.on', redraw)
 
 return M
 --[[
