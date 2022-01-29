@@ -60,7 +60,12 @@ local function get_quantized_map_entries(rows, cols)
         elseif a[1] > b[1] then
             return false
         end
-        return a[2] < b[2]
+        if a[2] < b[2] then
+            return true
+        elseif a[2] > b[2] then
+            return false
+        end
+        return a.on and not b.on
     end)
     return entries
 end
