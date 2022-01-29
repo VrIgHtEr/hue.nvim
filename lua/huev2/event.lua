@@ -75,15 +75,14 @@ end
 
 function M.unsubscribe_all(cb)
     local sub = subscriptions[cb]
-    if not sub then
-        return
-    end
-    local keys = {}
-    for k in pairs(sub) do
-        table.insert(keys, k)
-    end
-    for _, k in ipairs(keys) do
-        M.unsubscribe(k, cb)
+    if sub then
+        local keys = {}
+        for k in pairs(sub) do
+            table.insert(keys, k)
+        end
+        for _, k in ipairs(keys) do
+            M.unsubscribe(k, cb)
+        end
     end
 end
 
