@@ -6,7 +6,7 @@ local coordinates = {
     ['front door light'] = { 0.05, 0.95 },
 }
 
-function M.get_map_entries()
+local function get_map_entries()
     local ret = {}
     local inv = hue.inventory()
     if inv.light then
@@ -34,8 +34,8 @@ function M.get_map_entries()
     return ret
 end
 
-function M.get_quantized_map_entries(rows, cols)
-    local entries = M.get_map_entries()
+local function get_quantized_map_entries(rows, cols)
+    local entries = get_map_entries()
     for _, x in ipairs(entries) do
         x[1], x[2] = math.floor(x[1] * (rows - 1) + 0.5) + 1, math.floor(x[2] * (cols - 1) + 0.5) + 1
     end
@@ -50,8 +50,8 @@ function M.get_quantized_map_entries(rows, cols)
     return entries
 end
 
-function M.get_map(rows, cols)
-    local entries = M.get_quantized_map_entries(rows, cols)
+local function get_map(rows, cols)
+    local entries = get_quantized_map_entries(rows, cols)
     local idx = 0
     local function next()
         if idx ~= #entries then
@@ -67,25 +67,77 @@ function M.get_map(rows, cols)
             local line = {}
             for c = 1, cols do
                 if not n or n[1] > r or n[2] > c then
-                    line[c * 2 - 1] = ' '
-                    line[c * 2] = ' '
+                    line[c] = ' '
                 else
                     if n.on then
-                        line[c * 2 - 1] = 'O'
-                        line[c * 2] = 'O'
+                        line[c] = 'O'
                     else
-                        line[c * 2 - 1] = '.'
-                        line[c * 2] = '.'
+                        line[c] = '.'
                     end
                     repeat
                         n = next()
                     until not n or n[1] > r or n[2] > c
                 end
             end
-            lines[r] = table.concat(line)
+            lines[r] = line
         end
         return lines
     end
+end
+
+local function render(rows, cols)
+    local lines = get_map(rows, cols)
+    local max = math.floor((rows + 1) / 2)
+    for r = 1, max do
+        local rc = lines[r]
+        local r2 = r * 2
+        local r1 = lines[r2 - 1]
+        if r2 > rows then
+            for c = 1, cols do
+                if r1[c] == '.' then
+                    rc[c] = '🮎'
+                elseif r1[c] == 'O' then
+                    rc[c] = '▀'
+                else
+                    rc[c] = ' '
+                end
+            end
+        else
+            r2 = lines[r2]
+            for c = 1, cols do
+                if r1[c] == '.' then
+                    if r2[c] == '.' then
+                        rc[c] = '▒'
+                    elseif r2[c] == 'O' then
+                        rc[c] = '🮒'
+                    else
+                        rc[c] = '🮎'
+                    end
+                elseif r1[c] == 'O' then
+                    if r2[c] == '.' then
+                        rc[c] = '🮑'
+                    elseif r2[c] == 'O' then
+                        rc[c] = '█'
+                    else
+                        rc[c] = '▀'
+                    end
+                elseif r2[c] == '.' then
+                    rc[c] = '🮏'
+                elseif r2[c] == 'O' then
+                    rc[c] = '▄'
+                else
+                    rc[c] = ' '
+                end
+            end
+        end
+    end
+    for r = rows, max + 1, -1 do
+        table.remove(lines, r)
+    end
+    for r = max, 1, -1 do
+        lines[r] = table.concat(lines[r])
+    end
+    return lines
 end
 
 function M.show(rows, cols)
@@ -103,14 +155,14 @@ function M.show(rows, cols)
         return nil, 'cols < 1'
     end
 
-    local lines = M.get_map(rows, cols)
+    local lines = render(rows, cols)
 
     local buf = vim.api.nvim_create_buf(false, true)
     vim.api.nvim_buf_set_option(buf, 'filetype', 'philips_hue_map')
     vim.api.nvim_buf_set_lines(buf, 0, -1, true, lines)
     local win = vim.api.nvim_open_win(buf, false, {
-        width = cols * 2,
-        height = rows,
+        width = cols,
+        height = math.floor((rows + 1) / 2),
         relative = 'editor',
         col = 1073741824,
         row = 0,
@@ -120,7 +172,9 @@ function M.show(rows, cols)
         border = 'rounded',
     })
     vim.api.nvim_set_current_win(win)
-    vim.bo.filetype = 'philips_hue_map'
+    nnoremap('q', function()
+        vim.api.nvim_buf_delete(buf, { force = true })
+    end, 'buffer', 'silent', 'Closes the light map')
     vim.bo.modifiable = false
 end
 
