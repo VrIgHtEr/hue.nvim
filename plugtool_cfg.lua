@@ -31,5 +31,15 @@ return {
                 end)
             end,
         },
+        {
+            function()
+                local state = require('plugtool').state 'lukas-reineke/indent-blankline.nvim'
+                if not state.excludedfiletypes then
+                    state.excludedfiletypes = {}
+                end
+                table.insert(state.excludedfiletypes, 'philips_hue_map')
+            end,
+            before = 'lukas-reineke/indent-blankline.nvim',
+        },
     },
 }
