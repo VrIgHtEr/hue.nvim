@@ -3,6 +3,8 @@ local hue = require 'huev2.constants'
 
 local user_events = {}
 
+local subscriptions = {}
+
 local function get_table(key)
     local keys = {}
     while key:len() > 0 do
@@ -40,6 +42,13 @@ function M.subscribe(key, cb)
         return false
     end
     tbl[cb] = true
+    local sub = subscriptions[cb]
+    if not sub then
+        sub = { count = 0 }
+        subscriptions[cb] = sub
+    end
+    sub[key] = true
+    sub.count = sub.count + 1
     return true
 end
 
@@ -47,12 +56,35 @@ function M.unsubscribe(key, cb)
     if type(key) ~= 'string' or type(cb) ~= 'function' then
         return false
     end
+    local sub = subscriptions[cb]
+    if not sub or not sub[key] then
+        return
+    end
     local tbl = get_table(key)
     if not tbl or not tbl[cb] then
         return false
     end
     tbl[cb] = nil
+    sub[key] = nil
+    sub.count = sub.count - 1
+    if sub.count == 0 then
+        subscriptions[cb] = nil
+    end
     return true
+end
+
+function M.unsubscribe_all(cb)
+    local sub = subscriptions[cb]
+    if not sub then
+        return
+    end
+    local keys = {}
+    for k in pairs(sub) do
+        table.insert(keys, k)
+    end
+    for _, k in ipairs(keys) do
+        M.unsubscribe(k, cb)
+    end
 end
 
 function M.fire(r, key)

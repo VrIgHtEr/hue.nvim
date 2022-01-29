@@ -8,6 +8,7 @@ local M = {
     stop = eventloop.stop,
     subscribe = event.subscribe,
     unsubscribe = event.unsubscribe,
+    unsubscribe_all = event.unsubscribe_all,
     inventory = inventory.inventory,
     log = notify.log,
     logerr = notify.logerr,
