@@ -9,7 +9,9 @@ return {
             nnoremap('<leader>sm', ':lua require"hue.map".toggle()<cr>', 'silent', 'Hue: switch on and off room lights')
             vim.api.nvim_exec("augroup hue_event_close_group\nautocmd!\nautocmd VimLeave * lua require'hue'.stop()\naugroup END", true)
             require('hue').start()
-            require('hue.map').setup()
+
+            local rows = 30
+            require('hue.map').setup { rows = rows, cols = math.floor(rows * 1.4857143) }
         end,
         {
             before = 'nvim-lualine/lualine.nvim',

@@ -76,7 +76,7 @@ local function fanout(coord, radius, lights)
     local angle = math.pi * 2 / amt
     local ret = {}
     for i = 1, amt do
-        local x = angle * (i - 1)
+        local x = angle * (i - 1) + (angle / 2)
         local c = { math.sin(x) * radius + coord[1], math.cos(x) * radius + coord[2] }
         ret[lights[i]] = c
     end
@@ -84,10 +84,10 @@ local function fanout(coord, radius, lights)
 end
 
 local coordinates = {
-    ['study light'] = { 0.9, 0.2 },
-    ['front door light'] = { 0.05, 0.95 },
-    ['shower light'] = { 0.9, 0.05 },
-    ['The Sun'] = { 0.8, 0.1 },
+    ['study light'] = { 0.84813756, 0.31791908 },
+    ['front door light'] = { 0.27793694, 0.973025 },
+    ['shower light'] = { 0.8338109, 0.17148362 },
+    ['The Sun'] = { 0.55300856, 0.18304431 },
 }
 
 local function merge(tbl)
@@ -96,7 +96,7 @@ local function merge(tbl)
     end
 end
 
-merge(fanout({ 0.3, 0.1 }, 0.05, {
+merge(fanout({ 0.17765045, 0.20809248 }, 0.03, {
     'spare bedroom light 1',
     'spare bedroom light 2',
     'spare bedroom light 3',
@@ -105,14 +105,14 @@ merge(fanout({ 0.3, 0.1 }, 0.05, {
     'spare bedroom light 6',
 }))
 
-merge(fanout({ 0.4, 0.5 }, 0.05, {
+merge(fanout({ 0.37535816, 0.5761079 }, 0.025, {
     'living room light 1',
     'living room light 2',
     'living room light 3',
     'living room light 4',
 }))
 
-merge(fanout({ 0.75, 0.75 }, 0.05, {
+merge(fanout({ 0.6790831, 0.6416185 }, 0.03, {
     'kitchen light 1',
     'kitchen light 2',
     'kitchen light 3',
