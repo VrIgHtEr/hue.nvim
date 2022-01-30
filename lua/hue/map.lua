@@ -203,30 +203,16 @@ local function get_map()
 end
 
 local theme = {
-    empty = { char = '.' },
-    top_only_off = { hl = 'Function', char = '▀' },
-    top_only_on = { hl = 'Identifier', char = '▀' },
-    bottom_only_off = { hl = 'String', char = '▄' },
-    bottom_only_on = { hl = 'Float', char = '▄' },
-    both_off = { hl = 'TermCursor', char = '█' },
-    both_on = { hl = 'TermCursorNC', char = '█' },
-    top_off_bottom_on = { hl = 'DiffText', char = '█' },
-    top_on_bottom_off = { hl = 'Conceal', char = '█' },
+    empty = { char = ' ' },
+    top_only_off = { hl = 'Constant', char = '▀' },
+    top_only_on = { hl = 'Character', char = '▀' },
+    bottom_only_off = { hl = 'Number', char = '▄' },
+    bottom_only_on = { hl = 'Function', char = '▄' },
+    both_off = { hl = 'SpecialComment', char = '█' },
+    both_on = { hl = 'Statement', char = '█' },
+    top_off_bottom_on = { hl = 'Define', char = '█' },
+    top_on_bottom_off = { hl = 'Conditional', char = '█' },
 }
-if true then
-    theme = {
-        empty = { char = '.' },
-        --        top_only_off = { hl = 'Function', char = '▀' },
-        top_only_off = { hl = 'Constant', char = 'A' },
-        top_only_on = { hl = 'Character', char = 'B' },
-        bottom_only_off = { hl = 'Number', char = 'C' },
-        bottom_only_on = { hl = 'Function', char = 'D' },
-        both_off = { hl = 'SpecialComment', char = 'E' },
-        both_on = { hl = 'Statement', char = 'F' },
-        top_off_bottom_on = { hl = 'Define', char = 'G' },
-        top_on_bottom_off = { hl = 'Conditional', char = 'H' },
-    }
-end
 
 local function render()
     local highlights = {}
@@ -340,7 +326,7 @@ function M.show()
     vim.api.nvim_buf_clear_namespace(buf, options.ns, 0, -1)
     vim.api.nvim_buf_set_lines(buf, 0, -1, true, lines)
     for _, h in ipairs(highlights) do
-        vim.api.nvim_buf_add_highlight(buf, options.ns, h.theme.hl, h.row, h.col, h.col + 1)
+        vim.api.nvim_buf_add_highlight(buf, options.ns, h.theme.hl, h.row, h.col, h.col_end)
     end
     vim.api.nvim_buf_set_option(buf, 'modifiable', false)
 
