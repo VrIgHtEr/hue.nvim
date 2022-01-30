@@ -220,6 +220,7 @@ local colors = {
     yellow = 14,
     white = 15,
 }
+
 local theme = {
     empty = { char = ' ' },
     top_only_off = { char = '▀', hl_def = { guifg = '#555555' } },
@@ -240,6 +241,7 @@ local function render()
         local rc = lines[r]
         local r2 = r * 2
         local r1 = lines[r2 - 1]
+        local chl = 0
         if r2 > options.rows then
             for c = 1, options.cols do
                 local th
@@ -252,9 +254,11 @@ local function render()
                 end
                 local t = theme[th]
                 rc[c] = t.char
+                local nchl = chl + t.char:len()
                 if t.hl_def then
-                    table.insert(highlights, { row = r - 1, col = c - 1, hl = th })
+                    table.insert(highlights, { row = r - 1, col = chl, col_end = nchl, hl = th })
                 end
+                chl = nchl
             end
         else
             r2 = lines[r2]
@@ -285,9 +289,11 @@ local function render()
                 end
                 local t = theme[th]
                 rc[c] = t.char
+                local nchl = chl + t.char:len()
                 if t.hl_def then
-                    table.insert(highlights, { row = r - 1, col = c - 1, hl = th })
+                    table.insert(highlights, { row = r - 1, col = chl, col_end = nchl, hl = th })
                 end
+                chl = nchl
             end
         end
     end
@@ -296,10 +302,6 @@ local function render()
     end
     for r = max, 1, -1 do
         lines[r] = table.concat(lines[r])
-    end
-    for _, h in ipairs(highlights) do
-        h.col_end = vim.fn.byteidx(lines[h.row + 1], h.col + 1)
-        h.col = vim.fn.byteidx(lines[h.row + 1], h.col)
     end
     return lines, highlights
 end
