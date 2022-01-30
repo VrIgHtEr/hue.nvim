@@ -14,28 +14,6 @@ return {
             require('hue.map').setup { rows = rows, cols = math.floor(rows * 1.4857143) }
         end,
         {
-            before = 'nvim-lualine/lualine.nvim',
-            function()
-                local config = require('plugtool').state 'nvim-lualine/lualine.nvim'
-                if config.sections == nil then
-                    config.sections = {}
-                end
-                if config.sections.lualine_c == nil then
-                    config.sections.lualine_c = {}
-                end
-                table.insert(config.sections.lualine_c, "require'hue.statusline'()")
-            end,
-        },
-        {
-            after = 'nvim-lualine/lualine.nvim',
-            function()
-                local statusline = require('lualine').statusline
-                require('hue').subscribe('light.on', function()
-                    vim.schedule(statusline)
-                end)
-            end,
-        },
-        {
             function()
                 local state = require('plugtool').state 'lukas-reineke/indent-blankline.nvim'
                 if not state.excludedfiletypes then
