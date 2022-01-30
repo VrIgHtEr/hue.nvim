@@ -222,14 +222,14 @@ local colors = {
 }
 local theme = {
     empty = { char = ' ' },
-    top_only_off = { char = '▀', hl_def = { guifg = '#222222' } },
+    top_only_off = { char = '▀', hl_def = { guifg = '#555555' } },
     top_only_on = { char = '▀', hl_def = { guifg = '#ffffff' } },
-    bottom_only_off = { char = '▄', hl_def = { guifg = '#222222' } },
+    bottom_only_off = { char = '▄', hl_def = { guifg = '#555555' } },
     bottom_only_on = { char = '▄', hl_def = { guifg = '#ffffff' } },
-    both_off = { char = '█', hl_def = { guifg = '#222222' } },
+    both_off = { char = '█', hl_def = { guifg = '#555555' } },
     both_on = { char = '█', hl_def = { guifg = '#ffffff' } },
-    top_off_bottom_on = { char = '▄', hl_def = { guifg = '#ffffff', guibg = '#222222' } },
-    top_on_bottom_off = { char = '▄', hl_def = { guifg = '#222222', guibg = '#ffffff' } },
+    top_off_bottom_on = { char = '▄', hl_def = { guifg = '#ffffff', guibg = '#555555' } },
+    top_on_bottom_off = { char = '▄', hl_def = { guifg = '#555555', guibg = '#ffffff' } },
 }
 
 local function render()
