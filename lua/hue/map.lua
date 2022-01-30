@@ -202,16 +202,34 @@ local function get_map()
     end
 end
 
+local colors = {
+    black = 0,
+    dark_blue = 1,
+    dark_green = 2,
+    dark_cyan = 3,
+    dark_red = 4,
+    dark_magenta = 5,
+    dark_yellow = 6,
+    light_gray = 7,
+    dark_gray = 8,
+    blue = 9,
+    green = 10,
+    cyan = 11,
+    red = 12,
+    magenta = 13,
+    yellow = 14,
+    white = 15,
+}
 local theme = {
     empty = { char = ' ' },
-    top_only_off = { hl = 'Constant', char = '▀' },
-    top_only_on = { hl = 'Character', char = '▀' },
-    bottom_only_off = { hl = 'Number', char = '▄' },
-    bottom_only_on = { hl = 'Function', char = '▄' },
-    both_off = { hl = 'SpecialComment', char = '█' },
-    both_on = { hl = 'Statement', char = '█' },
-    top_off_bottom_on = { hl = 'Define', char = '█' },
-    top_on_bottom_off = { hl = 'Conditional', char = '█' },
+    top_only_off = { char = '▀', hl_def = { guifg = '#222222' } },
+    top_only_on = { char = '▀', hl_def = { guifg = '#ffffff' } },
+    bottom_only_off = { char = '▄', hl_def = { guifg = '#222222' } },
+    bottom_only_on = { char = '▄', hl_def = { guifg = '#ffffff' } },
+    both_off = { char = '█', hl_def = { guifg = '#222222' } },
+    both_on = { char = '█', hl_def = { guifg = '#ffffff' } },
+    top_off_bottom_on = { char = '▄', hl_def = { guifg = '#ffffff', guibg = '#222222' } },
+    top_on_bottom_off = { char = '▄', hl_def = { guifg = '#222222', guibg = '#ffffff' } },
 }
 
 local function render()
@@ -226,15 +244,16 @@ local function render()
             for c = 1, options.cols do
                 local th
                 if r1[c] == '.' then
-                    th = theme.top_only_off
+                    th = 'top_only_off'
                 elseif r1[c] == 'O' then
-                    th = theme.top_only_on
+                    th = 'top_only_on'
                 else
-                    th = theme.empty
+                    th = 'empty'
                 end
-                rc[c] = th.char
-                if th.hl then
-                    table.insert(highlights, { row = r - 1, col = c - 1, theme = th })
+                local t = theme[th]
+                rc[c] = t.char
+                if t.hl_def then
+                    table.insert(highlights, { row = r - 1, col = c - 1, hl = th })
                 end
             end
         else
@@ -243,30 +262,31 @@ local function render()
                 local th
                 if r1[c] == '.' then
                     if r2[c] == '.' then
-                        th = theme.both_off
+                        th = 'both_off'
                     elseif r2[c] == 'O' then
-                        th = theme.top_off_bottom_on
+                        th = 'top_off_bottom_on'
                     else
-                        th = theme.top_only_off
+                        th = 'top_only_off'
                     end
                 elseif r1[c] == 'O' then
                     if r2[c] == '.' then
-                        th = theme.top_on_bottom_off
+                        th = 'top_on_bottom_off'
                     elseif r2[c] == 'O' then
-                        th = theme.both_on
+                        th = 'both_on'
                     else
-                        th = theme.top_only_on
+                        th = 'top_only_on'
                     end
                 elseif r2[c] == '.' then
-                    th = theme.bottom_only_off
+                    th = 'bottom_only_off'
                 elseif r2[c] == 'O' then
-                    th = theme.bottom_only_on
+                    th = 'bottom_only_on'
                 else
-                    th = theme.empty
+                    th = 'empty'
                 end
-                rc[c] = th.char
-                if th.hl then
-                    table.insert(highlights, { row = r - 1, col = c - 1, theme = th })
+                local t = theme[th]
+                rc[c] = t.char
+                if t.hl_def then
+                    table.insert(highlights, { row = r - 1, col = c - 1, hl = th })
                 end
             end
         end
@@ -324,9 +344,23 @@ function M.show()
 
     vim.api.nvim_buf_set_option(buf, 'modifiable', true)
     vim.api.nvim_buf_clear_namespace(buf, options.ns, 0, -1)
+
+    for name, t in pairs(theme) do
+        if t.hl_def then
+            local cmd = { 'highlight', name }
+            if t.hl_def.guifg then
+                table.insert(cmd, 'guifg=' .. t.hl_def.guifg)
+            end
+            if t.hl_def.guibg then
+                table.insert(cmd, 'guibg=' .. t.hl_def.guibg)
+            end
+            vim.api.nvim_exec(table.concat(cmd, ' '), true)
+        end
+    end
+
     vim.api.nvim_buf_set_lines(buf, 0, -1, true, lines)
     for _, h in ipairs(highlights) do
-        vim.api.nvim_buf_add_highlight(buf, options.ns, h.theme.hl, h.row, h.col, h.col_end)
+        vim.api.nvim_buf_add_highlight(buf, options.ns, h.hl, h.row, h.col, h.col_end)
     end
     vim.api.nvim_buf_set_option(buf, 'modifiable', false)
 
