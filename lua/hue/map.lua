@@ -5,6 +5,7 @@ local options = {
     setup_pending = true,
     rows = 20,
     cols = 20,
+    ns = nil,
 }
 
 local function fanout(coord, radius, lights)
@@ -138,6 +139,18 @@ local function get_map()
     end
 end
 
+local theme = {
+    empty = 'String',
+    top_only_off = 'Function',
+    top_only_on = 'Identifier',
+    bottom_only_off = 'Boolean',
+    bottom_only_on = 'Float',
+    both_off = 'TermCursor',
+    both_on = 'TermCursorNC',
+    top_off_bottom_on = 'DiffText',
+    top_on_bottom_off = 'Conceal',
+}
+
 local function render()
     local highlights = {}
     local lines = get_map()
@@ -149,8 +162,10 @@ local function render()
         if r2 > options.rows then
             for c = 1, options.cols do
                 if r1[c] == '.' then
+                    table.insert(highlights, { row = r, col = c, hl = theme.top_only_off })
                     rc[c] = '🮎'
                 elseif r1[c] == 'O' then
+                    table.insert(highlights, { row = r, col = c, hl = theme.top_only_on })
                     rc[c] = '▀'
                 else
                     rc[c] = ' '
@@ -161,23 +176,31 @@ local function render()
             for c = 1, options.cols do
                 if r1[c] == '.' then
                     if r2[c] == '.' then
+                        table.insert(highlights, { row = r, col = c, hl = theme.both_off })
                         rc[c] = '▒'
                     elseif r2[c] == 'O' then
+                        table.insert(highlights, { row = r, col = c, hl = theme.top_off_bottom_on })
                         rc[c] = '🮒'
                     else
+                        table.insert(highlights, { row = r, col = c, hl = theme.top_only_off })
                         rc[c] = '🮎'
                     end
                 elseif r1[c] == 'O' then
                     if r2[c] == '.' then
+                        table.insert(highlights, { row = r, col = c, hl = theme.top_on_bottom_off })
                         rc[c] = '🮑'
                     elseif r2[c] == 'O' then
+                        table.insert(highlights, { row = r, col = c, hl = theme.both_on })
                         rc[c] = '█'
                     else
+                        table.insert(highlights, { row = r, col = c, hl = theme.top_only_on })
                         rc[c] = '▀'
                     end
                 elseif r2[c] == '.' then
+                    table.insert(highlights, { row = r, col = c, hl = theme.bottom_only_off })
                     rc[c] = '🮏'
                 elseif r2[c] == 'O' then
+                    table.insert(highlights, { row = r, col = c, hl = theme.bottom_only_on })
                     rc[c] = '▄'
                 else
                     rc[c] = ' '
@@ -210,7 +233,7 @@ function M.show()
         end
     end
 
-    local lines = render()
+    local lines, highlights = render()
 
     if not buf then
         buf = vim.api.nvim_create_buf(false, true)
@@ -219,6 +242,10 @@ function M.show()
 
     vim.api.nvim_buf_set_option(buf, 'modifiable', true)
     vim.api.nvim_buf_set_lines(buf, 0, -1, true, lines)
+    vim.api.nvim_buf_clear_namespace(buf, options.ns, 0, -1)
+    for _, h in ipairs(highlights) do
+        vim.api.nvim_buf_add_highlight(buf, options.ns, h.hl, h.row - 1, h.col - 1, h.col)
+    end
     vim.api.nvim_buf_set_option(buf, 'modifiable', false)
 
     if not win then
@@ -296,6 +323,7 @@ function M.setup(opts)
         return nil, 'cols < 1'
     end
     options.rows, options.cols = opts.rows, opts.cols
+    options.ns = vim.api.nvim_create_namespace 'vrighter_hue_map'
     options.setup_pending = false
 end
 
