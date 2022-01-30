@@ -8,6 +8,69 @@ local options = {
     ns = nil,
 }
 
+local win = nil
+local buf = nil
+
+local function redraw()
+    vim.schedule(function()
+        if win then
+            return M.show()
+        end
+    end)
+end
+
+function M.setup(opts)
+    if not opts then
+        opts = {}
+    end
+    if not opts.rows then
+        opts.rows = options.rows
+    end
+    if not opts.cols then
+        opts.cols = options.cols
+    end
+    if type(opts.rows) ~= 'number' then
+        return nil, 'rows is not a number'
+    end
+    if type(opts.cols) ~= 'number' then
+        return nil, 'cols is not a number'
+    end
+    opts.cols, opts.rows = math.floor(opts.cols), math.floor(opts.rows)
+    if opts.rows < 1 then
+        return nil, 'rows < 1'
+    end
+    if opts.cols < 1 then
+        return nil, 'cols < 1'
+    end
+    options.rows, options.cols = opts.rows, opts.cols
+    options.ns = vim.api.nvim_create_namespace 'vrighter_hue_map'
+    if options.setup_pending then
+        hue.subscribe('light.on', redraw)
+    end
+    options.setup_pending = false
+end
+
+function M.hide()
+    if options.setup_pending then
+        return
+    end
+    if win then
+        vim.api.nvim_win_close(win, true)
+        win = nil
+    end
+end
+
+function M.toggle()
+    if options.setup_pending then
+        return
+    end
+    if win then
+        M.hide()
+    else
+        M.show()
+    end
+end
+
 local function fanout(coord, radius, lights)
     local amt = #lights
     local angle = math.pi * 2 / amt
@@ -140,10 +203,9 @@ local function get_map()
 end
 
 local theme = {
-    empty = 'String',
     top_only_off = 'Function',
     top_only_on = 'Identifier',
-    bottom_only_off = 'Boolean',
+    bottom_only_off = 'String',
     bottom_only_on = 'Float',
     both_off = 'TermCursor',
     both_on = 'TermCursorNC',
@@ -163,10 +225,12 @@ local function render()
             for c = 1, options.cols do
                 if r1[c] == '.' then
                     table.insert(highlights, { row = r, col = c, hl = theme.top_only_off })
-                    rc[c] = '🮎'
+                    rc[c] = '▀'
+                    rc[c] = 'A'
                 elseif r1[c] == 'O' then
                     table.insert(highlights, { row = r, col = c, hl = theme.top_only_on })
                     rc[c] = '▀'
+                    rc[c] = 'B'
                 else
                     rc[c] = ' '
                 end
@@ -177,31 +241,39 @@ local function render()
                 if r1[c] == '.' then
                     if r2[c] == '.' then
                         table.insert(highlights, { row = r, col = c, hl = theme.both_off })
-                        rc[c] = '▒'
+                        rc[c] = '█'
+                        rc[c] = 'C'
                     elseif r2[c] == 'O' then
                         table.insert(highlights, { row = r, col = c, hl = theme.top_off_bottom_on })
-                        rc[c] = '🮒'
+                        rc[c] = '█'
+                        rc[c] = 'D'
                     else
                         table.insert(highlights, { row = r, col = c, hl = theme.top_only_off })
-                        rc[c] = '🮎'
+                        rc[c] = '▀'
+                        rc[c] = 'A'
                     end
                 elseif r1[c] == 'O' then
                     if r2[c] == '.' then
                         table.insert(highlights, { row = r, col = c, hl = theme.top_on_bottom_off })
-                        rc[c] = '🮑'
+                        rc[c] = '█'
+                        rc[c] = 'E'
                     elseif r2[c] == 'O' then
                         table.insert(highlights, { row = r, col = c, hl = theme.both_on })
                         rc[c] = '█'
+                        rc[c] = 'F'
                     else
                         table.insert(highlights, { row = r, col = c, hl = theme.top_only_on })
                         rc[c] = '▀'
+                        rc[c] = 'B'
                     end
                 elseif r2[c] == '.' then
                     table.insert(highlights, { row = r, col = c, hl = theme.bottom_only_off })
-                    rc[c] = '🮏'
+                    rc[c] = '▄'
+                    rc[c] = 'G'
                 elseif r2[c] == 'O' then
                     table.insert(highlights, { row = r, col = c, hl = theme.bottom_only_on })
                     rc[c] = '▄'
+                    rc[c] = 'H'
                 else
                     rc[c] = ' '
                 end
@@ -216,9 +288,6 @@ local function render()
     end
     return lines, highlights
 end
-
-local win = nil
-local buf = nil
 
 function M.show()
     if options.setup_pending then
@@ -240,14 +309,6 @@ function M.show()
         vim.api.nvim_buf_set_option(buf, 'filetype', 'philips_hue_map')
     end
 
-    vim.api.nvim_buf_set_option(buf, 'modifiable', true)
-    vim.api.nvim_buf_set_lines(buf, 0, -1, true, lines)
-    vim.api.nvim_buf_clear_namespace(buf, options.ns, 0, -1)
-    for _, h in ipairs(highlights) do
-        vim.api.nvim_buf_add_highlight(buf, options.ns, h.hl, h.row - 1, h.col - 1, h.col)
-    end
-    vim.api.nvim_buf_set_option(buf, 'modifiable', false)
-
     if not win then
         win = vim.api.nvim_open_win(buf, false, {
             width = options.cols,
@@ -265,66 +326,18 @@ function M.show()
         vim.api.nvim_win_set_buf(win, buf)
     end
 
+    vim.api.nvim_buf_set_option(buf, 'modifiable', true)
+    vim.api.nvim_buf_clear_namespace(buf, options.ns, 0, -1)
+    vim.api.nvim_buf_set_lines(buf, 0, -1, true, lines)
+    for _, h in ipairs(highlights) do
+        local hl = h.hl
+        local row = h.row - 1
+        local col = h.col - 1
+        vim.api.nvim_buf_add_highlight(buf, options.ns, hl, row, col, col + 1)
+    end
+    vim.api.nvim_buf_set_option(buf, 'modifiable', false)
+
     vim.api.nvim_set_current_win(cwin)
-end
-
-function M.hide()
-    if options.setup_pending then
-        return
-    end
-    if win then
-        vim.api.nvim_win_close(win, true)
-        win = nil
-    end
-end
-
-function M.toggle()
-    if options.setup_pending then
-        return
-    end
-    if win then
-        M.hide()
-    else
-        M.show()
-    end
-end
-
-local function redraw()
-    vim.schedule(function()
-        if win then
-            return M.show()
-        end
-    end)
-end
-
-hue.subscribe('light.on', redraw)
-
-function M.setup(opts)
-    if not opts then
-        opts = {}
-    end
-    if not opts.rows then
-        opts.rows = options.rows
-    end
-    if not opts.cols then
-        opts.cols = options.cols
-    end
-    if type(opts.rows) ~= 'number' then
-        return nil, 'rows is not a number'
-    end
-    if type(opts.cols) ~= 'number' then
-        return nil, 'cols is not a number'
-    end
-    opts.cols, opts.rows = math.floor(opts.cols), math.floor(opts.rows)
-    if opts.rows < 1 then
-        return nil, 'rows < 1'
-    end
-    if opts.cols < 1 then
-        return nil, 'cols < 1'
-    end
-    options.rows, options.cols = opts.rows, opts.cols
-    options.ns = vim.api.nvim_create_namespace 'vrighter_hue_map'
-    options.setup_pending = false
 end
 
 return M
