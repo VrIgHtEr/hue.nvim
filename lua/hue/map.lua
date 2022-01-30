@@ -1,6 +1,11 @@
 local M = {}
-local defrows, defcols = 20, 20
 local hue = require 'hue'
+
+local options = {
+    setup_pending = true,
+    rows = 20,
+    cols = 20,
+}
 
 local function fanout(coord, radius, lights)
     local amt = #lights
@@ -77,10 +82,10 @@ local function get_map_entries()
     return ret
 end
 
-local function get_quantized_map_entries(rows, cols)
+local function get_quantized_map_entries()
     local entries = get_map_entries()
     for _, x in ipairs(entries) do
-        x[1], x[2] = math.floor(x[1] * (rows - 1) + 0.5) + 1, math.floor(x[2] * (cols - 1) + 0.5) + 1
+        x[1], x[2] = math.floor(x[1] * (options.rows - 1) + 0.5) + 1, math.floor(x[2] * (options.cols - 1) + 0.5) + 1
     end
     table.sort(entries, function(a, b)
         if a[1] < b[1] then
@@ -98,8 +103,8 @@ local function get_quantized_map_entries(rows, cols)
     return entries
 end
 
-local function get_map(rows, cols)
-    local entries = get_quantized_map_entries(rows, cols)
+local function get_map()
+    local entries = get_quantized_map_entries()
     local idx = 0
     local function next()
         if idx ~= #entries then
@@ -111,9 +116,9 @@ local function get_map(rows, cols)
     if entries then
         local n = next()
         local lines = {}
-        for r = 1, rows do
+        for r = 1, options.rows do
             local line = {}
-            for c = 1, cols do
+            for c = 1, options.cols do
                 if not n or n[1] > r or n[2] > c then
                     line[c] = ' '
                 else
@@ -133,15 +138,16 @@ local function get_map(rows, cols)
     end
 end
 
-local function render(rows, cols)
-    local lines = get_map(rows, cols)
-    local max = math.floor((rows + 1) / 2)
+local function render()
+    local highlights = {}
+    local lines = get_map()
+    local max = math.floor((options.rows + 1) / 2)
     for r = 1, max do
         local rc = lines[r]
         local r2 = r * 2
         local r1 = lines[r2 - 1]
-        if r2 > rows then
-            for c = 1, cols do
+        if r2 > options.rows then
+            for c = 1, options.cols do
                 if r1[c] == '.' then
                     rc[c] = '🮎'
                 elseif r1[c] == 'O' then
@@ -152,7 +158,7 @@ local function render(rows, cols)
             end
         else
             r2 = lines[r2]
-            for c = 1, cols do
+            for c = 1, options.cols do
                 if r1[c] == '.' then
                     if r2[c] == '.' then
                         rc[c] = '▒'
@@ -179,40 +185,22 @@ local function render(rows, cols)
             end
         end
     end
-    for r = rows, max + 1, -1 do
+    for r = options.rows, max + 1, -1 do
         table.remove(lines, r)
     end
     for r = max, 1, -1 do
         lines[r] = table.concat(lines[r])
     end
-    return lines
+    return lines, highlights
 end
 
 local win = nil
 local buf = nil
 
-function M.show(rows, cols)
-    if rows == nil then
-        rows = defrows
+function M.show()
+    if options.setup_pending then
+        return
     end
-    if cols == nil then
-        cols = defcols
-    end
-    if type(rows) ~= 'number' then
-        return nil, 'rows is not a number'
-    end
-    if type(cols) ~= 'number' then
-        return nil, 'cols is not a number'
-    end
-    cols, rows = math.floor(cols), math.floor(rows)
-    if rows < 1 then
-        return nil, 'rows < 1'
-    end
-    if cols < 1 then
-        return nil, 'cols < 1'
-    end
-    defrows, defcols = rows, cols
-
     local cwin = vim.api.nvim_get_current_win()
 
     if win then
@@ -222,7 +210,7 @@ function M.show(rows, cols)
         end
     end
 
-    local lines = render(rows, cols)
+    local lines = render()
 
     if not buf then
         buf = vim.api.nvim_create_buf(false, true)
@@ -235,8 +223,8 @@ function M.show(rows, cols)
 
     if not win then
         win = vim.api.nvim_open_win(buf, false, {
-            width = cols,
-            height = math.floor((rows + 1) / 2),
+            width = options.cols,
+            height = math.floor((options.rows + 1) / 2),
             relative = 'editor',
             col = 1073741824,
             row = 0,
@@ -254,28 +242,61 @@ function M.show(rows, cols)
 end
 
 function M.hide()
+    if options.setup_pending then
+        return
+    end
     if win then
         vim.api.nvim_win_close(win, true)
         win = nil
     end
 end
 
-function M.toggle(rows, cols)
+function M.toggle()
+    if options.setup_pending then
+        return
+    end
     if win then
         M.hide()
     else
-        M.show(rows, cols)
+        M.show()
     end
 end
 
 local function redraw()
     vim.schedule(function()
         if win then
-            return M.show(defrows, defcols)
+            return M.show()
         end
     end)
 end
 
 hue.subscribe('light.on', redraw)
+
+function M.setup(opts)
+    if not opts then
+        opts = {}
+    end
+    if not opts.rows then
+        opts.rows = options.rows
+    end
+    if not opts.cols then
+        opts.cols = options.cols
+    end
+    if type(opts.rows) ~= 'number' then
+        return nil, 'rows is not a number'
+    end
+    if type(opts.cols) ~= 'number' then
+        return nil, 'cols is not a number'
+    end
+    opts.cols, opts.rows = math.floor(opts.cols), math.floor(opts.rows)
+    if opts.rows < 1 then
+        return nil, 'rows < 1'
+    end
+    if opts.cols < 1 then
+        return nil, 'cols < 1'
+    end
+    options.rows, options.cols = opts.rows, opts.cols
+    options.setup_pending = false
+end
 
 return M
