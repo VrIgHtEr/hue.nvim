@@ -203,15 +203,30 @@ local function get_map()
 end
 
 local theme = {
-    top_only_off = 'Function',
-    top_only_on = 'Identifier',
-    bottom_only_off = 'String',
-    bottom_only_on = 'Float',
-    both_off = 'TermCursor',
-    both_on = 'TermCursorNC',
-    top_off_bottom_on = 'DiffText',
-    top_on_bottom_off = 'Conceal',
+    empty = { char = '.' },
+    top_only_off = { hl = 'Function', char = '▀' },
+    top_only_on = { hl = 'Identifier', char = '▀' },
+    bottom_only_off = { hl = 'String', char = '▄' },
+    bottom_only_on = { hl = 'Float', char = '▄' },
+    both_off = { hl = 'TermCursor', char = '█' },
+    both_on = { hl = 'TermCursorNC', char = '█' },
+    top_off_bottom_on = { hl = 'DiffText', char = '█' },
+    top_on_bottom_off = { hl = 'Conceal', char = '█' },
 }
+if true then
+    theme = {
+        empty = { char = '.' },
+        --        top_only_off = { hl = 'Function', char = '▀' },
+        top_only_off = { hl = 'Constant', char = 'A' },
+        top_only_on = { hl = 'Character', char = 'B' },
+        bottom_only_off = { hl = 'Number', char = 'C' },
+        bottom_only_on = { hl = 'Function', char = 'D' },
+        both_off = { hl = 'SpecialComment', char = 'E' },
+        both_on = { hl = 'Statement', char = 'F' },
+        top_off_bottom_on = { hl = 'Define', char = 'G' },
+        top_on_bottom_off = { hl = 'Conditional', char = 'H' },
+    }
+end
 
 local function render()
     local highlights = {}
@@ -223,59 +238,49 @@ local function render()
         local r1 = lines[r2 - 1]
         if r2 > options.rows then
             for c = 1, options.cols do
+                local th
                 if r1[c] == '.' then
-                    table.insert(highlights, { row = r, col = c, hl = theme.top_only_off })
-                    rc[c] = '▀'
-                    rc[c] = 'A'
+                    th = theme.top_only_off
                 elseif r1[c] == 'O' then
-                    table.insert(highlights, { row = r, col = c, hl = theme.top_only_on })
-                    rc[c] = '▀'
-                    rc[c] = 'B'
+                    th = theme.top_only_on
                 else
-                    rc[c] = ' '
+                    th = theme.empty
+                end
+                rc[c] = th.char
+                if th.hl then
+                    table.insert(highlights, { row = r - 1, col = c - 1, theme = th })
                 end
             end
         else
             r2 = lines[r2]
             for c = 1, options.cols do
+                local th
                 if r1[c] == '.' then
                     if r2[c] == '.' then
-                        table.insert(highlights, { row = r, col = c, hl = theme.both_off })
-                        rc[c] = '█'
-                        rc[c] = 'C'
+                        th = theme.both_off
                     elseif r2[c] == 'O' then
-                        table.insert(highlights, { row = r, col = c, hl = theme.top_off_bottom_on })
-                        rc[c] = '█'
-                        rc[c] = 'D'
+                        th = theme.top_off_bottom_on
                     else
-                        table.insert(highlights, { row = r, col = c, hl = theme.top_only_off })
-                        rc[c] = '▀'
-                        rc[c] = 'A'
+                        th = theme.top_only_off
                     end
                 elseif r1[c] == 'O' then
                     if r2[c] == '.' then
-                        table.insert(highlights, { row = r, col = c, hl = theme.top_on_bottom_off })
-                        rc[c] = '█'
-                        rc[c] = 'E'
+                        th = theme.top_on_bottom_off
                     elseif r2[c] == 'O' then
-                        table.insert(highlights, { row = r, col = c, hl = theme.both_on })
-                        rc[c] = '█'
-                        rc[c] = 'F'
+                        th = theme.both_on
                     else
-                        table.insert(highlights, { row = r, col = c, hl = theme.top_only_on })
-                        rc[c] = '▀'
-                        rc[c] = 'B'
+                        th = theme.top_only_on
                     end
                 elseif r2[c] == '.' then
-                    table.insert(highlights, { row = r, col = c, hl = theme.bottom_only_off })
-                    rc[c] = '▄'
-                    rc[c] = 'G'
+                    th = theme.bottom_only_off
                 elseif r2[c] == 'O' then
-                    table.insert(highlights, { row = r, col = c, hl = theme.bottom_only_on })
-                    rc[c] = '▄'
-                    rc[c] = 'H'
+                    th = theme.bottom_only_on
                 else
-                    rc[c] = ' '
+                    th = theme.empty
+                end
+                rc[c] = th.char
+                if th.hl then
+                    table.insert(highlights, { row = r - 1, col = c - 1, theme = th })
                 end
             end
         end
@@ -285,6 +290,10 @@ local function render()
     end
     for r = max, 1, -1 do
         lines[r] = table.concat(lines[r])
+    end
+    for _, h in ipairs(highlights) do
+        h.col_end = vim.fn.byteidx(lines[h.row + 1], h.col + 1)
+        h.col = vim.fn.byteidx(lines[h.row + 1], h.col)
     end
     return lines, highlights
 end
@@ -307,6 +316,7 @@ function M.show()
     if not buf then
         buf = vim.api.nvim_create_buf(false, true)
         vim.api.nvim_buf_set_option(buf, 'filetype', 'philips_hue_map')
+        vim.api.nvim_buf_set_option(buf, 'fileencoding', 'utf-8')
     end
 
     if not win then
@@ -330,14 +340,10 @@ function M.show()
     vim.api.nvim_buf_clear_namespace(buf, options.ns, 0, -1)
     vim.api.nvim_buf_set_lines(buf, 0, -1, true, lines)
     for _, h in ipairs(highlights) do
-        local hl = h.hl
-        local row = h.row - 1
-        local col = h.col - 1
-        vim.api.nvim_buf_add_highlight(buf, options.ns, hl, row, col, col + 1)
+        vim.api.nvim_buf_add_highlight(buf, options.ns, h.theme.hl, h.row, h.col, h.col + 1)
     end
     vim.api.nvim_buf_set_option(buf, 'modifiable', false)
 
     vim.api.nvim_set_current_win(cwin)
 end
-
 return M
