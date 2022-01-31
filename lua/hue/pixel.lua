@@ -318,9 +318,7 @@ function M.use_color_pair(a, b)
     cached.refcount = cached.refcount + 1
     return cached.group
 end
---[[
-package.loaded['hue.pixel'] = nil require'hue.pixel'.setup()
---]]
+
 function M.unuse_highlight(hl)
     local key = hlgroups[hl]
     if key then
