@@ -24,17 +24,32 @@ function math.round(x)
     end
 end
 
+function M.int_to_rgb(i)
+    return bit.band(bit.rshift(i, 16), 255, bit.band(bit.rshift(i, 8), 255, bit.band(i, 255)))
+end
+
+function M.rgb_to_int(r, g, b)
+    return bit.lshift(math.round(math.min(255, math.max(0, r))), 16)
+        + bit.lshift(math.round(math.min(255, math.max(0, g))), 8)
+        + math.round(math.min(255, math.max(0, b)))
+end
+
+function M.pixel_pair(a, b)
+    return bit.lshift(a, 24) + b
+end
+
 local function velocityvector()
     local scaling = 0.025
     return { x = (math.random() * -0.5) * 2 * scaling, y = (math.random() * -0.5) * 2 * scaling }
 end
 
 local vertices = {
-    { pos = { x = math.random(), y = math.random() }, vel = velocityvector(), color = bit.lshift(255, 0) },
-    { pos = { x = math.random(), y = math.random() }, vel = velocityvector(), color = bit.lshift(255, 8) },
-    { pos = { x = math.random(), y = math.random() }, vel = velocityvector(), color = bit.lshift(255, 16) },
-    { pos = { x = math.random(), y = math.random() }, vel = velocityvector(), color = bit.lshift(255, 16) },
-    { pos = { x = math.random(), y = math.random() }, vel = velocityvector(), color = bit.lshift(255, 16) },
+    { pos = { x = math.random(), y = math.random() }, vel = velocityvector(), color = M.rgb_to_int(255, 0, 0) },
+    { pos = { x = math.random(), y = math.random() }, vel = velocityvector(), color = M.rgb_to_int(0, 255, 0) },
+    { pos = { x = math.random(), y = math.random() }, vel = velocityvector(), color = M.rgb_to_int(0, 0, 255) },
+    { pos = { x = math.random(), y = math.random() }, vel = velocityvector(), color = M.rgb_to_int(255, 255, 0) },
+    { pos = { x = math.random(), y = math.random() }, vel = velocityvector(), color = M.rgb_to_int(0, 255, 255) },
+    { pos = { x = math.random(), y = math.random() }, vel = velocityvector(), color = M.rgb_to_int(255, 0, 255) },
 }
 
 local function update_vertex(v)
@@ -62,8 +77,13 @@ local function redraw()
     vim.schedule(function()
         if win then
             M.drawing.clear()
-            for _, x in ipairs(vertices) do
+            for i, x in ipairs(vertices) do
                 update_vertex(x)
+                if i % 2 == 1 then
+                    x.color = 255 * 1
+                else
+                    x.color = 255 * 1
+                end
             end
             for i, x in ipairs(vertices) do
                 local j
@@ -77,7 +97,8 @@ local function redraw()
                     a.pos.x * (options.cols - 1) + 1,
                     a.pos.y * (options.rows - 1) + 1,
                     b.pos.x * (options.cols - 1) + 1,
-                    b.pos.y * (options.rows - 1) + 1
+                    b.pos.y * (options.rows - 1) + 1,
+                    a.color
                 )
             end
             return M.show()
@@ -129,7 +150,8 @@ function M.drawing.line(x0, y0, x1, y1, col)
     end
     local err = dx + dy
     while true do
-        M.setpixel(y0, x0, col)
+        grid[y0][x0] = col
+        --M.setpixel(y0, x0, col)
         if x0 == x1 and y0 == y1 then
             break
         end
@@ -208,20 +230,6 @@ function M.getpixel(r, c)
         return
     end
     return grid[r][c]
-end
-
-function M.int_to_rgb(i)
-    return bit.band(bit.rshift(i, 16), 255, bit.band(bit.rshift(i, 8), 255, bit.band(i, 255)))
-end
-
-function M.rgb_to_int(r, g, b)
-    return bit.lshift(math.round(math.min(255, math.max(0, r))), 16)
-        + bit.lshift(math.round(math.min(255, math.max(0, g))), 8)
-        + math.round(math.min(255, math.max(0, b)))
-end
-
-function M.pixel_pair(a, b)
-    return bit.lshift(a, 24) + b
 end
 
 local function decode_hex(hex)
@@ -325,8 +333,8 @@ function M.unuse_highlight(hl)
         cached.refcount = cached.refcount - 1
         if cached.refcount == 0 then
             hl_groups[cached.group] = nil
-            -- local cmd = 'highlight clear ' .. cached.group
-            --vim.api.nvim_exec(cmd, true)
+            local cmd = 'highlight clear ' .. cached.group
+            vim.api.nvim_exec(cmd, true)
             table.insert(freelist, cached.id)
             cache[key] = nil
         end
@@ -376,12 +384,7 @@ local function render()
             end
             M.unuse_highlight(row[c])
             row[c] = M.use_color_pair(col1, col2)
-            local char
-            if col1 == col2 then
-                char = '█'
-            else
-                char = '▀'
-            end
+            local char = '▀'
             local newhlindex = hl_col_index + char:len()
             table.insert(line, char)
             table.insert(hl, { row = r - 1, col = hl_col_index, col_end = newhlindex, hl = row[c] })
@@ -444,6 +447,6 @@ function M.show()
 end
 
 local timer = vim.loop.new_timer()
-vim.loop.timer_start(timer, 100, 100, redraw)
+vim.loop.timer_start(timer, 40, 40, redraw)
 
 return M
