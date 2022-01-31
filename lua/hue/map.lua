@@ -325,6 +325,7 @@ function M.show()
         buf = vim.api.nvim_create_buf(false, true)
         vim.api.nvim_buf_set_option(buf, 'filetype', 'philips_hue_map')
         vim.api.nvim_buf_set_option(buf, 'fileencoding', 'utf-8')
+        vim.api.nvim_buf_set_option(buf, 'undolevels', -1)
     end
 
     if not win then
