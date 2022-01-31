@@ -2,6 +2,7 @@ local eventloop = require 'hue.eventloop'
 local event = require 'hue.event'
 local inventory = require 'hue.inventory'
 local notify = require 'hue.notify'
+local constants = require 'hue.constants'
 
 local M = {
     start = eventloop.start,
@@ -14,6 +15,7 @@ local M = {
     logerr = notify.logerr,
     logwarn = notify.logwarn,
     get = inventory.get,
+    constants = constants,
 }
 
 return M

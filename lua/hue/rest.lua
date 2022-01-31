@@ -88,6 +88,7 @@ function M.request_async(url, opts)
     end
 
     return function(callback)
+        callback = callback or function() end
         a.run(function()
             local err = a.wait(a.spawn_async(cmd))
             if err == 0 then
