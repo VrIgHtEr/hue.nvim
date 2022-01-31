@@ -70,11 +70,12 @@ local function update_vertex(v)
     end
 end
 
-local function redraw()
+local redraw
+redraw = function()
     vim.schedule(function()
         if win then
             M.drawing.clear()
-            for i, x in ipairs(vertices) do
+            for _, x in ipairs(vertices) do
                 update_vertex(x)
             end
             for i, x in ipairs(vertices) do
@@ -93,7 +94,8 @@ local function redraw()
                     a.color
                 )
             end
-            return M.show()
+            M.show()
+            vim.defer_fn(redraw, 40)
         end
     end)
 end
@@ -140,7 +142,6 @@ function M.drawing.line(x0, y0, x1, y1, col)
     local err = dx + dy
     while true do
         grid[y0][x0] = col
-        --M.setpixel(y0, x0, col)
         if x0 == x1 and y0 == y1 then
             break
         end
@@ -357,6 +358,7 @@ function M.toggle()
     else
         refresh_highlights()
         M.show()
+        vim.schedule(redraw)
     end
 end
 
@@ -434,6 +436,7 @@ function M.show()
     vim.api.nvim_buf_set_option(buf, 'modifiable', true)
     vim.api.nvim_buf_clear_namespace(buf, options.ns, 0, -1)
 
+    vim.api.nvim_buf_set_lines(buf, 0, -1, true, {})
     vim.api.nvim_buf_set_lines(buf, 0, -1, true, lines)
     for _, h in ipairs(hl) do
         vim.api.nvim_buf_add_highlight(buf, options.ns, h.hl, h.row, h.col, h.col_end)
@@ -442,8 +445,5 @@ function M.show()
 
     vim.api.nvim_set_current_win(cwin)
 end
-
-local timer = vim.loop.new_timer()
-vim.loop.timer_start(timer, 40, 40, redraw)
 
 return M

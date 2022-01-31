@@ -13,7 +13,7 @@ return {
 
             local rows = 30
             require('hue.map').setup { rows = rows, cols = math.floor(rows * 1.4857143) }
-            require('hue.pixel').setup { rows = 120, cols = 160 }
+            require('hue.pixel').setup { rows = 90, cols = 160 }
         end,
         {
             function()
