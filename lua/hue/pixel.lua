@@ -398,15 +398,6 @@ function M.show()
     if options.setup_pending then
         return
     end
-    local cwin = vim.api.nvim_get_current_win()
-
-    if win then
-        local success = pcall(vim.api.nvim_set_current_win, win)
-        if not success then
-            win = nil
-        end
-    end
-
     local lines, hl = render()
 
     if not buf then
@@ -428,7 +419,6 @@ function M.show()
             focusable = false,
             border = 'rounded',
         })
-        vim.api.nvim_set_current_win(win)
     else
         vim.api.nvim_win_set_buf(win, buf)
     end
@@ -442,8 +432,6 @@ function M.show()
         vim.api.nvim_buf_add_highlight(buf, options.ns, h.hl, h.row, h.col, h.col_end)
     end
     vim.api.nvim_buf_set_option(buf, 'modifiable', false)
-
-    vim.api.nvim_set_current_win(cwin)
 end
 
 return M
