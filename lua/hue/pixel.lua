@@ -9,12 +9,13 @@ local options = {
 
 local win = nil
 local buf = nil
-local cache = {}
-local hl_groups = {}
-local freelist = {}
 local hlindex = 0
 local grid = {}
 local highlights = {}
+
+local freelist = {}
+local hlcache = {}
+local hlgroups = {}
 
 function math.round(x)
     if x >= 0 then
@@ -32,10 +33,6 @@ function M.rgb_to_int(r, g, b)
     return bit.lshift(math.round(math.min(255, math.max(0, r))), 16)
         + bit.lshift(math.round(math.min(255, math.max(0, g))), 8)
         + math.round(math.min(255, math.max(0, b)))
-end
-
-function M.pixel_pair(a, b)
-    return bit.lshift(a, 24) + b
 end
 
 local function velocityvector()
@@ -79,11 +76,6 @@ local function redraw()
             M.drawing.clear()
             for i, x in ipairs(vertices) do
                 update_vertex(x)
-                if i % 2 == 1 then
-                    x.color = 255 * 1
-                else
-                    x.color = 255 * 1
-                end
             end
             for i, x in ipairs(vertices) do
                 local j
@@ -107,11 +99,8 @@ local function redraw()
 end
 
 local function refresh_highlights()
-    for group, pair in pairs(hl_groups) do
-        vim.api.nvim_exec(
-            'highlight ' .. group .. ' guifg=' .. M.int_to_hex(bit.band(bit.rshift(pair, 24), 16777215)) .. ' guibg=' .. M.int_to_hex(bit.band(pair, 16777215)),
-            true
-        )
+    for group, pair in pairs(hlgroups) do
+        vim.api.nvim_exec('highlight ' .. group .. ' guifg=' .. M.int_to_hex(pair.a) .. ' guibg=' .. M.int_to_hex(pair.b), true)
     end
 end
 
@@ -304,8 +293,13 @@ function M.group_name(id)
 end
 
 function M.use_color_pair(a, b)
-    local key = M.pixel_pair(a, b)
-    local cached = cache[key]
+    local cached = hlcache[a]
+    if not cached then
+        cached = { count = 0 }
+        hlcache[a] = cached
+    end
+    cached = cached[b]
+
     if not cached then
         local id
         if #freelist > 0 then
@@ -315,8 +309,9 @@ function M.use_color_pair(a, b)
             hlindex = hlindex + 1
         end
         cached = { refcount = 0, id = id, group = M.group_name(id) }
-        hl_groups[cached.group] = key
-        cache[key] = cached
+        hlgroups[cached.group] = { a = a, b = b }
+
+        hlcache[a][b] = cached
         local cmd = 'highlight ' .. cached.group .. ' guifg=' .. M.int_to_hex(a) .. ' guibg=' .. M.int_to_hex(b)
         vim.api.nvim_exec(cmd, true)
     end
@@ -327,16 +322,20 @@ end
 package.loaded['hue.pixel'] = nil require'hue.pixel'.setup()
 --]]
 function M.unuse_highlight(hl)
-    local key = hl_groups[hl]
+    local key = hlgroups[hl]
     if key then
-        local cached = cache[key]
+        local cached = hlcache[key.a][key.b]
         cached.refcount = cached.refcount - 1
         if cached.refcount == 0 then
-            hl_groups[cached.group] = nil
+            hlgroups[cached.group] = nil
             local cmd = 'highlight clear ' .. cached.group
             vim.api.nvim_exec(cmd, true)
             table.insert(freelist, cached.id)
-            cache[key] = nil
+            hlcache[key.a][key.b] = nil
+            hlcache[key.a].count = hlcache[key.a].count - 1
+            if hlcache[key.a].count == 0 then
+                hlcache[key.a] = nil
+            end
         end
     end
 end
