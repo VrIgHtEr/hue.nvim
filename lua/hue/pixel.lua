@@ -17,6 +17,10 @@ local freelist = {}
 local hlcache = {}
 local hlgroups = {}
 
+local char = '▀'
+local charlen = char:len()
+local lines
+
 function math.round(x)
     if x >= 0 then
         return math.floor(x + 0.5)
@@ -212,6 +216,15 @@ function M.setup(opts)
             row[j] = M.use_color_pair(col1, col2)
         end
     end
+    lines = {}
+    lines[1] = {}
+    for c = 1, options.cols do
+        lines[1][c] = char
+    end
+    lines[1] = table.concat(lines[1])
+    for r = 2, math.floor((options.rows + 1) / 2) do
+        lines[r] = lines[1]
+    end
     options.setup_pending = false
 end
 
@@ -327,8 +340,8 @@ function M.unuse_highlight(hl)
         cached.refcount = cached.refcount - 1
         if cached.refcount == 0 then
             hlgroups[cached.group] = nil
-            local cmd = 'highlight clear ' .. cached.group
-            vim.api.nvim_exec(cmd, true)
+            --local cmd = 'highlight clear ' .. cached.group
+            --vim.api.nvim_exec(cmd, true)
             table.insert(freelist, cached.id)
             hlcache[key.a][key.b] = nil
             hlcache[key.a].count = hlcache[key.a].count - 1
@@ -363,14 +376,11 @@ function M.toggle()
 end
 
 local function render()
-    local lines = {}
     local hl = {}
-
     local max = math.floor((options.rows + 1) / 2)
     for r = 1, max do
         local r2 = r * 2
         local r1 = r2 - 1
-        local line = {}
         local hl_col_index = 0
         local row = highlights[r]
         for c = 1, options.cols do
@@ -383,28 +393,26 @@ local function render()
             end
             M.unuse_highlight(row[c])
             row[c] = M.use_color_pair(col1, col2)
-            local char = '▀'
-            local newhlindex = hl_col_index + char:len()
-            table.insert(line, char)
+            local newhlindex = hl_col_index + charlen
             table.insert(hl, { row = r - 1, col = hl_col_index, col_end = newhlindex, hl = row[c] })
             hl_col_index = newhlindex
         end
-        table.insert(lines, table.concat(line))
     end
-    return lines, hl
+    return hl
 end
 
 function M.show()
     if options.setup_pending then
         return
     end
-    local lines, hl = render()
+    local hl = render()
 
     if not buf then
         buf = vim.api.nvim_create_buf(false, true)
         vim.api.nvim_buf_set_option(buf, 'filetype', 'philips_hue_map')
         vim.api.nvim_buf_set_option(buf, 'fileencoding', 'utf-8')
         vim.api.nvim_buf_set_option(buf, 'undolevels', -1)
+        vim.api.nvim_buf_set_lines(buf, 0, -1, true, lines)
     end
 
     if not win then
@@ -426,8 +434,6 @@ function M.show()
     vim.api.nvim_buf_set_option(buf, 'modifiable', true)
     vim.api.nvim_buf_clear_namespace(buf, options.ns, 0, -1)
 
-    vim.api.nvim_buf_set_lines(buf, 0, -1, true, {})
-    vim.api.nvim_buf_set_lines(buf, 0, -1, true, lines)
     for _, h in ipairs(hl) do
         vim.api.nvim_buf_add_highlight(buf, options.ns, h.hl, h.row, h.col, h.col_end)
     end
