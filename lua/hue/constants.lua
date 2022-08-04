@@ -4,8 +4,32 @@ if type(_G['hue-application-key']) ~= 'string' or type(_G['hue-url']) ~= 'string
     M.misconfigured = true
     return M
 end
+local cachePath = vim.fn.stdpath 'cache'
+M.headersPath = cachePath .. '/hue.nvim.curl.conf'
+do
+    local uv = vim.loop
+    local stat = uv.fs_stat(cachePath)
+    if stat then
+        if stat.type ~= 'directory' then
+            error 'cache path is not a directory'
+        end
+    else
+        if not uv.fs_mkdir(cachePath) then
+            error 'could not create cache directory'
+        end
+    end
 
-M.appkey = _G['hue-application-key']
+    local file = uv.fs_open(M.headersPath, 'w', tonumber('600', 8))
+    if not file then
+        error 'could not open cache file'
+    end
+    if not uv.fs_write(file, '-H "hue-application-key: ' .. _G['hue-application-key'] .. '"') then
+        uv.fs_close(file)
+        error 'could not write authentication header file'
+    end
+    uv.fs_close(file)
+end
+
 M.host = _G['hue-url']
 M.url_head = 'https://' .. M.host
 M.url_tail = '/clip/v2'
